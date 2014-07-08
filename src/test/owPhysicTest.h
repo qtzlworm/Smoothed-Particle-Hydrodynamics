@@ -9,6 +9,7 @@
 #define OWPHYSICTEST_H_
 
 void test_energy_conservation();
+void test_gravity();
 
 
 #endif /* OWPHYSICTEST_H_ */

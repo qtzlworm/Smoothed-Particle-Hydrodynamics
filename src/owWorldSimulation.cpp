@@ -801,6 +801,20 @@ void RespondKey(unsigned char key, int x, int y)
 		fluid_simulation->reset();
 		sPause = false;
 		break;
+	case '3':
+		owHelper::path += "test/";
+		owHelper::suffix = "_liquid";
+		helper->refreshTime();
+		fluid_simulation->reset();
+		sPause = false;
+		break;
+	case '4':
+		owHelper::path += "test/";
+		owHelper::suffix = "_elastic_one";
+		helper->refreshTime();
+		fluid_simulation->reset();
+		sPause = false;
+		break;
 	case '\033':// Escape quits
 	case 'Q':   // Q quits
 	case 'q':   // q quits

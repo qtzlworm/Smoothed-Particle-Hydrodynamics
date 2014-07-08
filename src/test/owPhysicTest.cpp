@@ -49,7 +49,8 @@
 float calcPotentialEnergy( owConfigProrerty *, float * );
 float calcKineticEnergy( owConfigProrerty *, float *, float * );
 float get_len( float * );
-
+void get_position(owPhysicsFluidSimulator * , float * , float * , int );
+float get_dist(float *, float *);
 float gravity = 9.81f;
 
 /*******************************************************
@@ -82,7 +83,7 @@ void test_energy_conservation(){
 		energy_evolution_kinetic.push_back(kinetic_energy);
 		energy_evolution_potential.push_back(potential_energy);
 		fluid_simulation->simulationStep();
-		if(counter == 5000)
+		if(counter == 10000)
 			break;
 		counter++;
 	}
@@ -91,8 +92,40 @@ void test_energy_conservation(){
 	owHelper::log_buffer(&energy_evolution_potential[0], 1, energy_evolution_potential.size(), "./logs/potential_energy_distrib.txt");
 	std::cout << "===================" << "CONSERVATION ENERGY TEST END  " << "========================" << std::endl;
 	delete fluid_simulation;
-	delete p_buffer;
-	delete v_buffer;
+}
+
+void test_gravity(){
+	owHelper::path = "./configuration/test/";
+	owHelper::suffix = "_elastic_one";
+	owHelper * helper = new owHelper();
+	owPhysicsFluidSimulator * fluid_simulation = new owPhysicsFluidSimulator(helper);
+	float * initial_position = new float[4];
+	float * initial_velocity = new float[4];
+	float * current_position = new float[4];
+	float * current_velocity = new float[4];
+	float * p_buffer;
+	float * v_buffer;
+	const int id = 0;
+	int counter = 0;
+	const int totalNumberOfIteration = 1000;
+	float * result = new float[ totalNumberOfIteration * 2 ];
+	get_position(fluid_simulation,initial_position,initial_velocity,id);
+	result[0] = timeStep * counter;
+	result[1] = get_dist(initial_position,initial_position) * simulationScale;
+	counter++;
+	std::cout << "===================" << "CONSERVATION GRAVITY TEST START" << "========================" << std::endl;
+	while(1){
+		fluid_simulation->simulationStep();
+		get_position(fluid_simulation,current_position,current_velocity,id);
+		if(counter == totalNumberOfIteration)
+			break;
+		result[counter * 2 + 0] = timeStep * counter;
+		result[counter * 2 + 1] = get_dist(initial_position,current_position) * simulationScale;
+		counter++;
+	}
+	owHelper::log_buffer(result, 2, totalNumberOfIteration, "./logs/gravity_test_distrib.txt");
+	std::cout << "===================" << "CONSERVATION GRAVITY TEST END  " << "========================" << std::endl;
+	delete fluid_simulation;
 }
 float calcPotentialEnergy(owConfigProrerty * config, float * p_buffer){
 	float e = 0.f;
@@ -115,8 +148,25 @@ float calcKineticEnergy(owConfigProrerty * config, float * v_buffer, float * p_b
 	return e;
 }
 float get_dist(float * from, float * to){
-	return sqrt ( pow(to[0] - from[0], 2.f) + pow(to[1] - from[1], 2.f) + pow(to[2] - from[2], 2.f) + pow(to[3] - from[3], 2.f) );
+	return sqrt ( pow(to[0] - from[0], 2.f) + pow(to[1] - from[1], 2.f) + pow(to[2] - from[2], 2.f) );
 }
 float get_len(float * v){
 	return sqrt( pow(v[0],2.0f) + pow(v[1],2.0f) + pow(v[2],2.0f));
+}
+void get_position(owPhysicsFluidSimulator * fluid_simulation, float * init_p, float * init_v, int id){
+	float * p_b;
+	float * v_b;
+	p_b = fluid_simulation->getPosition_cpp();
+	v_b = fluid_simulation->getvelocity_cpp();
+	init_p[0] = p_b[ id * 4 + 0 ];
+	init_p[1] = p_b[ id * 4 + 1 ];
+	init_p[2] = p_b[ id * 4 + 2 ];
+	init_p[3] = p_b[ id * 4 + 3 ];
+
+	init_v[0] = v_b[ id * 4 + 0 ];
+	init_v[1] = v_b[ id * 4 + 1 ];
+	init_v[2] = v_b[ id * 4 + 2 ];
+	init_v[3] = v_b[ id * 4 + 3 ];
+	//delete v_b;
+	//delete p_b;
 }
