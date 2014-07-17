@@ -722,7 +722,8 @@ __kernel void pcisph_computeElasticForces(
 
 			if(r_ij!=0.f)
 			{
-				acceleration[ id ] += -(vect_r_ij/r_ij) * delta_r_ij * elasticityCoefficient ;
+				acceleration[ id ] += -(vect_r_ij/r_ij) * delta_r_ij * elasticityCoefficient;//1.0e-07f / mass;// ;
+				//printf("+++");
 				for(i=0;i<MUSCLE_COUNT;i++)//check all muscles
 				{
 					if((int)(elasticConnectionsData[idx+nc].z)==(i+1))//contractible spring, = muscle
@@ -864,11 +865,11 @@ __kernel void pcisph_predictPositions(
 		return;
 	}
 	//                     pressure force (dominant)            + all other forces  
-	float4 acceleration_t    = acceleration[ PARTICLE_COUNT*2+id_source_particle ];    acceleration_t.w    = 0.f;
-	float4 acceleration_t_dt = acceleration[ id ] + acceleration[ PARTICLE_COUNT+id ]; acceleration_t_dt.w = 0.f;
+	//float4 acceleration_t    = acceleration[ PARTICLE_COUNT*2+id_source_particle ];    acceleration_t.w    = 0.f;
+	float4 acceleration_t_dt = acceleration[ id ] + /*0.0f**/acceleration[ PARTICLE_COUNT+id ]; acceleration_t_dt.w = 0.f;
 	float4 velocity_t = sortedVelocity[ id ];
 	
-	float4 acceleration_ = acceleration[ PARTICLE_COUNT+id ];// + acceleration[ id ];
+	//float4 acceleration_ = acceleration[ PARTICLE_COUNT+id ];// + acceleration[ id ];
 	// Semi-implicit Euler integration 
 	float4 velocity_t_dt = velocity_t + timeStep * acceleration_t_dt; //newVelocity_.w = 0.f;
 	float posTimeStep = timeStep * simulationScaleInv;			
@@ -1585,7 +1586,8 @@ __kernel void pcisph_integrate(
 						float r0,
 						__global float2 * neighborMap,
 						int PARTICLE_COUNT,
-						int iterationCount
+						int iterationCount,
+						int mode
 						)
 {
 	int id = get_global_id( 0 ); 
@@ -1602,10 +1604,17 @@ __kernel void pcisph_integrate(
 	//printf("\n===[ iterationCount= %d ]===",iterationCount);
 	//printf("\n===[ id= %d ]===[ id_source_particle= %d ]===",id,id_source_particle);
 
+	if(iterationCount==0) 
+	{
+		acceleration[ PARTICLE_COUNT*2+id_source_particle ] =
+			acceleration[ id ] + acceleration[ PARTICLE_COUNT+id ];
+		return;
+	}
 	float4 acceleration_t    = acceleration[ PARTICLE_COUNT*2+id_source_particle ];    acceleration_t.w    = 0.f;
-	float4 acceleration_t_dt = acceleration[ id ] + acceleration[ PARTICLE_COUNT+id ]; acceleration_t_dt.w = 0.f;
 	float4 velocity_t = sortedVelocity[ id ];
-	float4 position_t = sortedPosition[ id ];
+	float particleType = position[ id_source_particle ].w;
+	//= (float4)(0.f,0.f,0.f,0.0f); 
+	//= (float4)(gravity_x,gravity_y,gravity_z,0.0f); 
 
 	//printf("\n===[ acceleration[ id ].x= %E ]===[ acceleration[ PARTICLE_COUNT+id ].x= %E ]===",acceleration[ id ].x,acceleration[ PARTICLE_COUNT+id ].x);
 	//printf("\n===[ acceleration[ id ].y= %E ]===[ acceleration[ PARTICLE_COUNT+id ].y= %E ]===",acceleration[ id ].y,acceleration[ PARTICLE_COUNT+id ].y);
@@ -1614,8 +1623,7 @@ __kernel void pcisph_integrate(
 	//printf("\n===[ acceleration_t.y= %E ]===[ acceletation_t_dt.y= %E ]===",acceleration_t.y,acceleration_t_dt.y);
 	//printf("\n===[ acceleration_t.z= %E ]===[ acceletation_t_dt.z= %E ]===",acceleration_t.z,acceleration_t_dt.z);
 
-	if(iterationCount==0) 
-		acceleration_t = (float4)(0.0f,-9.8f,0.0f,0.0f); 
+
 
 	// acceleration[ id ] = visc.F. + surf.tens.F. + grav.F. + elast.F. + muscl.contr.F.
 	// acceleration[ PARTICLE_COUNT+id ] = pressure.F.
@@ -1652,31 +1660,93 @@ __kernel void pcisph_integrate(
 	// time-independent).																			//				
 	// http://en.wikipedia.org/wiki/Semi-implicit_Euler												//
 	//////////////////////////////////////////////////////////////////////////////////////////////////
-	// Semi-)Implicit Euler integrator. 1st order, symplectic (has a sort of "global" stability) 	//
+	// Semi-Implicit Euler integrator. 1st order, symplectic (has a sort of "global" stability) 	//
 	// Most of the usual numerical methods, like the primitive Euler scheme							//
 	// and the classical Runge-Kutta scheme, are not symplectic integrators.						//
 //!!//////////////////////////////////////////////////////////////////////////////////////////////////
-	/**/	float4 velocity_t_dt = velocity_t + (acceleration_t_dt)*timeStep;						//
-	/**/	float4 position_t_dt = position_t + (velocity_t_dt)*timeStep*simulationScaleInv;		//
-	//////////////////////////////////////////////////////////////////////////////////////////////////
-	//printf("\n===[ timeStep= %5e ]===",timeStep);
+	if(mode == 2){
+		float4 acceleration_t_dt = acceleration[ id ] + acceleration[ PARTICLE_COUNT+id ]; acceleration_t_dt.w = 0.f;
+		float4 position_t = sortedPosition[ id ];
+		float4 velocity_t_dt = velocity_t + (acceleration_t_dt)*timeStep;						//
+		float4 position_t_dt = position_t + (velocity_t_dt)*timeStep*simulationScaleInv;		//
+		
+		float particleType = position[ id_source_particle ].w;
+		computeInteractionWithBoundaryParticles(id,r0,neighborMap,particleIndexBack,particleIndex,position,velocity,&position_t_dt, true, &velocity_t_dt,PARTICLE_COUNT);
 
+		
+		velocity[ id_source_particle ] = velocity_t_dt;
+		position[ id_source_particle ] = position_t_dt;
+		position[ id_source_particle ].w = particleType;
+		//velocity[ id_source_particle ] = (float4)((float)velocity_t_dt_x, (float)velocity_t_dt_y, (float)velocity_t_dt_z, 0.f);
+		//position[ id_source_particle ] = (float4)((float)position_t_dt_x, (float)position_t_dt_y, (float)position_t_dt_z, particleType);
+
+		acceleration[PARTICLE_COUNT*2+id_source_particle] = acceleration_t_dt;
+		return;
+	}
+	//////////////////////////////////////////////////////////////////////////////////////////////////
+
+/*	printf("  ==> acceleration_t.x %f\n",acceleration_t.x);
+	printf("  ==> acceleration_t.y %f\n",acceleration_t.y);
+	printf("  ==> acceleration_t.z %f\n",acceleration_t.z);
+	printf("  ==> acceleration_t_dt %f\n",acceleration_t_dt.y);
+*/
 	//////////////////////////////////////////////////////////////////////////////////////////////////
 	//	LEAPFROG METHOD		2-nd order(!)		symplectic(!)		obviously best choice			//
 	//////////////////////////////////////////////////////////////////////////////////////////////////
-	// leapfrog is also symplectic
+	// http://www.artcompsci.org/msa/web/vol_1/v1_web/node34.html									//
+	//////////////////////////////////////////////////////////////////////////////////////////////////
 	// in the leapfrog method, the recipe changes a little bit.
     //Find the forces.
     //Find the new momentum based on the force and HALF of the small time step interval (not the whole time step)
     //Find the new position.
     //Find the next new momentum with the other half of the time step.
 	//A second way to write the leapfrog looks quite different at first sight. Defining all quantities only at integer times, we can write: 
-	/**///	float4 position_t_dt = position_t + (velocity_t*timeStep + acceleration_t*timeStep*timeStep/2.f)*simulationScaleInv;		
-	/**///	float4 velocity_t_dt = velocity_t + (acceleration_t + acceleration_t_dt)*timeStep/2.f;						
+
+	
+	
+	if(mode==0/*positions_mode*/)
+	{
+		float4 position_t = sortedPosition[ id ];
+		float4 position_t_dt = position_t + (velocity_t*timeStep + acceleration_t*timeStep*timeStep/2.f)*simulationScaleInv;		
+		sortedPosition[ id ] = position_t_dt;		
+		sortedPosition[ id ].w = particleType;
+		//printf("  ==> mode0\n");
+		//printf("  ==> x(t) %f\n",position_t.y);
+		//printf("  ==> v(t) %f\n",velocity_t.y);
+		//printf("  ==> a(t) %f\n",acceleration_t.y);
+	}
+	else
+	if(mode==1/*velocities_mode*/)
+	{
+		float4 position_t_dt = sortedPosition[ id ];//necessary for computeInteractionsWithBoundaryParticles()
+		float4 acceleration_t_dt = acceleration[ id ] + acceleration[ PARTICLE_COUNT+id ]; acceleration_t_dt.w = 0.f;
+		float4 velocity_t_dt = velocity_t + (acceleration_t + acceleration_t_dt)*timeStep/2.f;						
+
+		computeInteractionWithBoundaryParticles(id,r0,neighborMap,particleIndexBack,particleIndex,position,velocity,&position_t_dt, true, &velocity_t_dt,PARTICLE_COUNT);
+		velocity[ id_source_particle ] = velocity_t_dt;
+		acceleration[PARTICLE_COUNT*2+id_source_particle] = acceleration_t_dt;
+
+		position[ id_source_particle ] = position_t_dt;
+		position[ id_source_particle ].w = particleType;
+
+		//printf("  ==> mode1\n");
+		//printf("  ==> x(t+dt) %f\n",position_t_dt.y);
+		//printf("  ==> v(t+dt) %f\n",velocity_t_dt.y);
+		//printf("  ==> a(t+dt) %f\n",acceleration_t_dt.y);
+
+	}
+
 	// for floats it works with a significant error, which neglects all advantages of this really nice method
 	// for example, at first time step we get 2.17819E-03 instead of 2.18000E-03, and such things occur at every step and accumulate.
 	// switching to doubles.
 	
+	//printf("  ==> %E\n",timeStep);
+	//printf("  ==> %E\n",simulationScaleInv);
+
+	return;
+	//printf("  ==> %E\n",1.f/simulationScaleInv);
+	//printf("\n===[ timeStep= %5e ]===",timeStep);
+
 
 //	printf("\n===[ r_t_dt= %5e]===",position_t_dt.y-ymax/2);
 	//printf("\n===[ simulationScaleInv= %5e ]===",simulationScaleInv);
@@ -1724,7 +1794,7 @@ __kernel void pcisph_integrate(
 	//else//if mode==1
 
 	// in Chao Fang realization here is also acceleration 'speed limit' applied
-
+/*
 	if(position_t_dt.x<xmin) position_t_dt.x = xmin;//A.Palyanov 30.08.2012
 	if(position_t_dt.y<ymin) position_t_dt.y = ymin;//A.Palyanov 30.08.2012
 	if(position_t_dt.z<zmin) position_t_dt.z = zmin;//A.Palyanov 30.08.2012
@@ -1732,18 +1802,8 @@ __kernel void pcisph_integrate(
 	if(position_t_dt.y>ymax-0.000001f) position_t_dt.y = ymax-0.000001f;//A.Palyanov 30.08.2012
 	if(position_t_dt.z>zmax-0.000001f) position_t_dt.z = zmax-0.000001f;//A.Palyanov 30.08.2012
 	// better replace 0.0000001 with smoothingRadius*0.001 or smth like this 
+*/
 
-	float particleType = position[ id_source_particle ].w;
-	computeInteractionWithBoundaryParticles(id,r0,neighborMap,particleIndexBack,particleIndex,position,velocity,&position_t_dt, true, &velocity_t_dt,PARTICLE_COUNT);
-
-	
-	velocity[ id_source_particle ] = velocity_t_dt;
-	position[ id_source_particle ] = position_t_dt;
-	position[ id_source_particle ].w = particleType;
-	//velocity[ id_source_particle ] = (float4)((float)velocity_t_dt_x, (float)velocity_t_dt_y, (float)velocity_t_dt_z, 0.f);
-	//position[ id_source_particle ] = (float4)((float)position_t_dt_x, (float)position_t_dt_y, (float)position_t_dt_z, particleType);
-
-	acceleration[PARTICLE_COUNT*2+id_source_particle] = acceleration_t_dt;
 }
 
 

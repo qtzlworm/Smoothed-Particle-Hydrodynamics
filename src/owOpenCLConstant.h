@@ -55,4 +55,7 @@ const int local_NDRange_size = 256;
 #define CPU 0
 #define GPU 1
 
+#define EULER_INTEGRATOR 0 //if it equal 1 it means that system will work with semi-implicit Euler integrator
+						   //else it LeapFrog by default
+
 #endif // #ifndef OW_OPENCL_CONSTANT_H

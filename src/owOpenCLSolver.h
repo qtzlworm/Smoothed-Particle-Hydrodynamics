@@ -88,7 +88,7 @@ public:
 	unsigned int _run_pcisph_predictDensity(owConfigProrerty * config);
 	unsigned int _run_pcisph_correctPressure(owConfigProrerty * config);
 	unsigned int _run_pcisph_computePressureForceAcceleration(owConfigProrerty * config);
-	unsigned int _run_pcisph_integrate(int iterationCount, owConfigProrerty * config);
+	unsigned int _run_pcisph_integrate(int iterationCount, int pcisph_integrate_mode, owConfigProrerty * config);
 	//
 	unsigned int _run_clearMembraneBuffers(owConfigProrerty * config);
 	unsigned int _run_computeInteractionWithMembranes(owConfigProrerty * config);

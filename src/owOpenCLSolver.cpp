@@ -193,8 +193,8 @@ void owOpenCLSolver::initializeOpenCL(owConfigProrerty * config)
 	bool bPassed = true, findDevice = false;
 	cl_int result;
 	for(int clSelectedPlatformID = 0;clSelectedPlatformID < (int)n_pl;clSelectedPlatformID++){
-		if(findDevice)
-			break;
+		//if(findDevice)
+		//	break;
 		clGetDeviceIDs (cl_pl_id[clSelectedPlatformID], CL_DEVICE_TYPE_ALL, 0, NULL, &ciDeviceCount);
 		if ((devices_t = (cl_device_id*)malloc(sizeof(cl_device_id) * ciDeviceCount)) == NULL){
 		   bPassed = false;
@@ -207,13 +207,14 @@ void owOpenCLSolver::initializeOpenCL(owConfigProrerty * config)
 					if( type & device_type[config->getDeviceType()]){
 						plList = clSelectedPlatformID;
 						findDevice = true;
-						break;
+						//break;
 					}
 				}
 			}
 		}
 	}
 	if(!findDevice) plList = 0;
+	plList = 0;
 	cl_context_properties cprops[3] = { CL_CONTEXT_PLATFORM, (cl_context_properties) (platformList[plList])(), 0 };
 	context = cl::Context( device_type[config->getDeviceType()], cprops, NULL, NULL, &err );
 	devices = context.getInfo< CL_CONTEXT_DEVICES >();
@@ -675,7 +676,7 @@ unsigned int owOpenCLSolver::_run_computeInteractionWithMembranes_finalize(owCon
 }
 
 
-unsigned int owOpenCLSolver::_run_pcisph_integrate(int iterationCount, owConfigProrerty * config)
+unsigned int owOpenCLSolver::_run_pcisph_integrate(int iterationCount, int pcisph_integrate_mode, owConfigProrerty * config)
 {
 	// Stage Integrate
 	pcisph_integrate.setArg( 0, acceleration );
@@ -702,6 +703,7 @@ unsigned int owOpenCLSolver::_run_pcisph_integrate(int iterationCount, owConfigP
 	pcisph_integrate.setArg( 21, neighborMap );
 	pcisph_integrate.setArg( 22, config->getParticleCount() );
 	pcisph_integrate.setArg( 23, iterationCount );
+	pcisph_integrate.setArg( 24, pcisph_integrate_mode );
 	int err = queue.enqueueNDRangeKernel(
 		pcisph_integrate, cl::NullRange, cl::NDRange( (int) (  config->getParticleCount_RoundUp() ) ),
 #if defined( __APPLE__ )

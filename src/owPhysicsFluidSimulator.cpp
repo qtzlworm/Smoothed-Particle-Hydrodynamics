@@ -198,6 +198,12 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 		ocl_solver->_runIndexPostPass(config);							helper->watch_report("_runIndexPostPass: \t%9.3f ms\n");
 		ocl_solver->_runFindNeighbors(config);							helper->watch_report("_runFindNeighbors: \t%9.3f ms\n");
 		//PCISPH PART
+		
+		if(!EULER_INTEGRATOR)
+			//Calc next time (t+dt) positions x(t+dt)
+			ocl_solver->_run_pcisph_integrate(iterationCount,0/*=positions_mode*/, config);
+
+		//Calc forces and thus accelerations for x(t+dt) 
 		ocl_solver->_run_pcisph_computeDensity(config);
 		ocl_solver->_run_pcisph_computeForcesAndInitPressure(config);
 		ocl_solver->_run_pcisph_computeElasticForces(config);
@@ -209,8 +215,14 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 			ocl_solver->_run_pcisph_computePressureForceAcceleration(config);
 			iter++;
 		}while( iter < maxIteration );
-
-		ocl_solver->_run_pcisph_integrate(iterationCount, config);		helper->watch_report("_runPCISPH: \t\t%9.3f ms\t3 iteration(s)\n");
+		if(!EULER_INTEGRATOR){
+			//and finally calculate v(t+dt)
+			ocl_solver->_run_pcisph_integrate(iterationCount,1/*=velocities_mode*/, config);
+		}
+		else{
+			ocl_solver->_run_pcisph_integrate(iterationCount,2/*=semi-implicid Euler*/, config);
+		}
+		helper->watch_report("_runPCISPH: \t\t%9.3f ms\t3 iteration(s)\n");
 		//Handling of Interaction with membranes
 		if(numOfMembranes > 0){
 			ocl_solver->_run_clearMembraneBuffers(config);

@@ -67,8 +67,8 @@ int main(int argc, char **argv)
 			}
 		}
 		if(run_tests){
-			//test_energy_conservation();
-			test_gravity();
+			test_energy_conservation();
+			//test_gravity();
 		}
 		else
 			run( argc, argv, graph, load_to );

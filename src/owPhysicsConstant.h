@@ -47,8 +47,8 @@
 
 const float rho0 = 1000.0f;
 const float mass = 3.25e-14f;// kg // we need 3.25e-14 kg
-const float timeStep = 5.0e-06f;// s // ATTENTION! too large values can lead to 'explosion' of elastic matter objects
-
+const float timeStep = 1.0e-06f;//5.0e-06f;// s // ATTENTION! too large values can lead to 'explosion' of elastic matter objects
+// 1.0e-05 should work as well
 
 const float simulationScale = 0.004f*pow(mass,1.f/3.f)/pow(0.00025f,1.f/3.f);
 
@@ -86,7 +86,7 @@ const float _hScaled2 = _hScaled*_hScaled;//squared scaled smoothing radius
 // and particle mass = 3.25e-14 kg
 
 const float stiffness = 0.75f;	//need description of this parameter
-const float viscosity = 0.000005f;//0.00015f;	// liquid viscosity  //why this value? Dynamic viscosity of water at 25 C = 0.89e-3 Pa*s
+const float viscosity = 0.00005f;//0.00015f;	// liquid viscosity  //why this value? Dynamic viscosity of water at 25 C = 0.89e-3 Pa*s
 const float damping = 0.75f;	//need description of this parameter
 
 const float CFLLimit = 100.0f;
@@ -100,7 +100,7 @@ const float gravity_y = -9.8f;
 const float gravity_z = 0.0f;
 extern const float delta;
 const int maxIteration = 3;
-const float surfTensCoeff = 0.f;//-1.5e-09f * 0.3f* (float)(Wpoly6Coefficient * pow(h*simulationScale*h*simulationScale/2.0,3.0)) * simulationScale;
+const float surfTensCoeff = -1.5e-09f * 0.3f* (float)(Wpoly6Coefficient * pow(h*simulationScale*h*simulationScale/2.0,3.0)) * simulationScale;
 const float elasticityCoefficient = 1.95e-05f / mass;
 
 const float mass_mult_Wpoly6Coefficient = (float) ( (double)mass * Wpoly6Coefficient );
