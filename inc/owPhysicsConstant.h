@@ -44,6 +44,15 @@
 #define M_PI 3.1415927f
 #endif
 
+const float h = 3.34f;                              // Smoothed radius value. This is dimensionless invariant parameter.
+                                                    // For taken real value in meter you need multiple this on simulationScale.
+                                                    // h is a spatial distance, over which their properties are "smoothed" by a kernel function [1].
+                                                    // [1] https://en.wikipedia.org/wiki/Smoothed-particle_hydrodynamics
+
+const float hashGridCellSize = 2.0f * h;            // All bounding box is divided on small spatial cells with size of side == h. Size of side for one spatial cell
+                                                    // This require for spatial hashing and => searching a neighbors
+const float r0 = 0.5f * h;                          // Standard distance between two boundary particle == equilibrium distance between 2 particles [1]
+                                                    // [1] M. Ihmsen, N. Akinci, M. Gissler, M. Teschner, Boundary Handling and Adaptive Time-stepping for PCISPH Proc. VRIPHYS, Copenhagen, Denmark, pp. 79-88, Nov 11-12, 2010.
 
 const float rho0 = 1000.0f;                         // Standard value of liquid density for water (kg/m^3)
 
@@ -94,22 +103,16 @@ const float timeStep = 5.0e-06f;                    // Time step of simulation (
                                                     // [1] M. Ihmsen, N. Akinci, M. Gissler, M. Teschner, Boundary Handling and Adaptive Time-stepping for PCISPH Proc. VRIPHYS, Copenhagen, Denmark, pp. 79-88, Nov 11-12, 2010.
                                                     // ATTENTION! too large values can lead to 'explosion' of elastic matter objects
 
-const float simulationScale = pow(mass,1.f/3.f)/pow(rho0,1.f/3.f); // Simulation scale coefficient. It means that N * simulationScale
+/*For now we have many ways how to calculate simulation Scale*/
+const float simulationScale =  pow(6*mass/(rho0 * M_PI),1.f/3.f)/r0;// First way one particle takes some Volume = V = PI * r^3 * 4/3 where r = (simulationScale*r0/2)
+                                                                    // V = m/rho0 => simulationScale = (mass/(6*rho0* PI)^(1/3) * r0)
+                                                                    // 0.004f*pow(mass,1.f/3.f)/pow(0.00025f,1.f/3.f);
+		                                                            // pow(mass,1.f/3.f)/pow(rho0,1.f/3.f);
+                                                                    // Simulation scale coefficient. It means that N * simulationScale
                                                                    // converts from simulation scale to meters N / simulationScale convert from meters simulation scale
                                                                    // If you want to take real value of distance in meters you need multiple on simulation scale
                                                                    // NOTE: simulationScale depends from mass of particle. If we place one particle
                                                                    // into volume with some size of side we want that density in this value is equal to rho0
-
-const float h = 3.34f;                              // Smoothed radius value. This is dimensionless invariant parameter.
-                                                    // For taken real value in meter you need multiple this on simulationScale.
-                                                    // h is a spatial distance, over which their properties are "smoothed" by a kernel function [1].
-                                                    // [1] https://en.wikipedia.org/wiki/Smoothed-particle_hydrodynamics
-
-const float hashGridCellSize = 2.0f * h;            // All bounding box is divided on small spatial cells with size of side == h. Size of side for one spatial cell
-                                                    // This require for spatial hashing and => searching a neighbors
-const float r0 = 0.5f * h;                          // Standard distance between two boundary particle == equilibrium distance between 2 particles [1]
-                                                    // [1] M. Ihmsen, N. Akinci, M. Gissler, M. Teschner, Boundary Handling and Adaptive Time-stepping for PCISPH Proc. VRIPHYS, Copenhagen, Denmark, pp. 79-88, Nov 11-12, 2010.
-
 const float viscosity = 0.00005f;                   // liquid viscosity value //why this value? Dynamic viscosity of water at 25 C = 0.89e-3 Pa*s
 const double beta = timeStep*timeStep*mass*mass*2/(rho0*rho0); // B. Solenthaler's dissertation, formula 3.6 (end of page 30)
 
@@ -128,7 +131,7 @@ const double divgradWviscosityCoefficient = - gradWspikyCoefficient;            
 			   z/
  */
 const float gravity_x = 0.0f;                       // Value of vector Gravity component x
-const float gravity_y = -9.8f;                      // Value of vector Gravity component y
+const float gravity_y = 0.0f;//-9.8f;                      // Value of vector Gravity component y
 const float gravity_z = 0.0f;                       // Value of vector Gravity component z
 extern const float delta;                           // NOTE more info about this parameter see in file owPhysicsFluidSimulator.cpp description of function calcDelta()
 const int maxIteration = 3;                         // Number of iterations for Predictive-Corrective scheme
@@ -144,7 +147,8 @@ const float simulationScaleInv = 1.0f / simulationScale;   // Inverted value for
 const float _hScaled = h * simulationScale;         // scaled smoothing radius
 const float _hScaled2 = _hScaled*_hScaled;          // squared scaled smoothing radius
 
-const float surfTensCoeff = -1.5e-09f * 0.3f* (float)(Wpoly6Coefficient * pow(h*simulationScale*h*simulationScale/2.0,3.0)) * simulationScale; // Surface coefficient. Actually it is -1.5e-09f * 0.3f
+const float surfTensCoeff = mass_mult_Wpoly6Coefficient * simulationScale;
+//const float surfTensCoeff = -1.5e-09f * 0.3f* (float)(Wpoly6Coefficient * pow(h*simulationScale*h*simulationScale/2.0,3.0)) * simulationScale; // Surface coefficient. Actually it is -1.5e-09f * 0.3f
                                                                                                                                                // But for decreasing number of repeating calculation we suppose that
                                                                                                                                                // surfTensCoeff = -1.5e-09f * 0.3f* (float)(Wpoly6Coefficient * pow(h*simulationScale*h*simulationScale/2.0,3.0)) * simulationScale
 const float elasticityCoefficient = 1.95e-05f / mass; // Elasticity coefficient. Actually it isn't

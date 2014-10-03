@@ -111,6 +111,7 @@ public:
 	 */
 	const int getIteration() const { return iterationCount; };
 	void reset();
+	void getDensityDistrib();
 private:
 	owOpenCLSolver * ocl_solver;
 	float * position_cpp;				// everywhere in the code %variableName%_cpp means that we create 

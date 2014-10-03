@@ -90,7 +90,7 @@ void owHelper::refreshTime()
 //READ DEFAULT CONFIGURATATION FROM FILE IN CONFIGURATION FOLDER
 int read_position = 0;
 std::string owHelper::path = "./configuration/";
-std::string owHelper::suffix = "";
+std::string owHelper::suffix = "_w";
 /** Preparing initial data before load full configuration
  *
  *  Before load configuration data from file (initial position and velocity,
