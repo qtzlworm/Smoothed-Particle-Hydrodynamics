@@ -149,7 +149,7 @@ void owPhysicsFluidSimulator::reset(){
 	}else
 		ocl_solver->reset(position_cpp,velocity_cpp, config);	//Create new openCLsolver instance
 }
-
+//TODO delete this after FIX
 void owPhysicsFluidSimulator::getDensityDistrib(){
 	float minDistVal = 0.0f;
 	float maxDistVal = 1100.0f;
@@ -265,8 +265,10 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 				}
 			}
 		}
+		/*TODO delete block below after fix*/
 		//if(iterationCount % 100 == 0)
-		//	getDensityDistrib();
+		//	getDensityDistrib(); //Load histogram of distribution of density to file
+		//Calculating values of volume and density for start and end configuration
 		if(iterationCount == 1000 || iterationCount == 0){
 			float left;
 			float right;
@@ -311,6 +313,7 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 				std::cout << "ERROR"<< std::endl;
 			}
 		}
+		/*END*/
 		iterationCount++;
 		//for(int i=0;i<MUSCLE_COUNT;i++) { muscle_activation_signal_cpp[i] *= 0.9f; }
 		ocl_solver->updateMuscleActivityData(muscle_activation_signal_cpp);
@@ -386,7 +389,7 @@ float calcDelta()
 
             sum2 += h_r_2 * h_r_2;
             r_ij2 = dist * dist;
-            density += (hScaled2-r_ij2)*(hScaled2-r_ij2)*(hScaled2-r_ij2);
+            density += (hScaled2-r_ij2)*(hScaled2-r_ij2)*(hScaled2-r_ij2);//TODO delete this after fix
         }
     }
     density *= mass_mult_Wpoly6Coefficient;
