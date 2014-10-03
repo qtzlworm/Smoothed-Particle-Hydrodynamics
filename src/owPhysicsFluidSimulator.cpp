@@ -304,7 +304,7 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 					exit(0);
 				}
 				else{
-					start_volume = pow(diameter,3.0);
+					start_volume = pow(diameter,3.0);//it because on first iteration it's a cube
 					start_density = mass * numOfLiquidP / start_volume;
 				}
 				//std::cout << "Density of droplet is:" << simulationScale << std::endl;
