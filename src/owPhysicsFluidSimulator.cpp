@@ -155,7 +155,7 @@ void owPhysicsFluidSimulator::getDensityDistrib(){
 	float maxDistVal = 1100.0f;
 	float step = 50.0f;
 	const int size = (int)((maxDistVal - minDistVal)/step);
-	int distrib[2 * size];
+	std::vector<int> distrib(2 * size,0);
 	int pib;
 	float rho;
 	this->getDensity_cpp();
@@ -293,6 +293,7 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 				float volume;
 				float density;
 				if(iterationCount != 0){
+					getDensityDistrib(); //Load histogram of distribution of density to file
 					volume = pow(diameter,3.0f) * 3.14159265359f * 1.0f/6.0f;
 					density = mass * numOfLiquidP / volume;
 					std::cout << "Diameter of droplet is:" << diameter << std::endl;
@@ -304,7 +305,7 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 					exit(0);
 				}
 				else{
-					start_volume = pow(diameter,3.0);//it because on first iteration it's a cube
+					start_volume = pow(diameter,3.0f);//it because on first iteration it's a cube
 					start_density = mass * numOfLiquidP / start_volume;
 				}
 				//std::cout << "Density of droplet is:" << simulationScale << std::endl;
