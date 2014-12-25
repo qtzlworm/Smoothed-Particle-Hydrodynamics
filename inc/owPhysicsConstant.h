@@ -86,7 +86,7 @@ const float _hScaled2 = _hScaled*_hScaled;//squared scaled smoothing radius
 // and particle mass = 3.25e-14 kg
 
 const float stiffness = 0.75f;	//need description of this parameter
-const float viscosity = 0.00005f;//0.00015f;	// liquid viscosity  //why this value? Dynamic viscosity of water at 25 C = 0.89e-3 Pa*s
+const float viscosity = 0.00002f;//0.00015f;	// liquid viscosity  //why this value? Dynamic viscosity of water at 25 C = 0.89e-3 Pa*s
 const float damping = 0.75f;	//need description of this parameter
 
 const float CFLLimit = 100.0f;

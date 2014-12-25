@@ -48,6 +48,8 @@ int numOfMembranes = 0;
 extern float * muscle_activation_signal_cpp;
 int iter_step = 10;
 
+
+extern int MAX_ITERATION;
 //mv
 //need to find a more elegant design for this - at the moment the use of a global
 //is pretty ugly:
@@ -62,6 +64,35 @@ void fillMemId(int * particleMembranesList_cpp){
 		}
 	}
 	std::cout << memParticle.size() << std::endl;
+}
+
+std::vector<float> displacement;
+void owPhysicsFluidSimulator::calcCMDisplacement(float * position_buffer, owConfigProrerty * config){
+	float dispacement[4];
+	float value;
+	for(int i=0;i<config->getParticleCount();i++){
+		if((int)position_buffer[i * 4 + 3] == ELASTIC_PARTICLE){
+			dispacement[1] += position_buffer[i * 4 + 0];
+			dispacement[2] += position_buffer[i * 4 + 1];
+			dispacement[3] += position_buffer[i * 4 + 2];
+		}
+	}
+	dispacement[0] = iterationCount * timeStep;
+	dispacement[3] = (dispacement[3] - config->zmax/2)*simulationScale;
+	dispacement[2] = (dispacement[2] - config->ymax/2)*simulationScale;
+	dispacement[1] = (dispacement[1] - config->xmax/2)*simulationScale;
+	dispacement[1] /= numOfElasticP;
+	dispacement[2] /= numOfElasticP;
+	dispacement[3] /= numOfElasticP;
+	/*if(iterationCount == 0){
+		start_value = dispacement[1];
+	}*/
+	//dispacement[1] -= start_value;
+	//dispacement[1] = (dispacement[1] < 0.f) ? dispacement[1] * -1.f : dispacement[1];
+	displacement.push_back(dispacement[0]);
+	displacement.push_back(dispacement[1]);
+	displacement.push_back(dispacement[2]);
+	displacement.push_back(dispacement[3]);
 }
 owPhysicsFluidSimulator::owPhysicsFluidSimulator(owHelper * helper,const int dev_type)
 {
@@ -243,7 +274,14 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 				}
 			}
 		}
+		//WRITE TRAJECTORY
+		calcCMDisplacement(position_cpp,config);
+		//
 		iterationCount++;
+		if(iterationCount == MAX_ITERATION){
+			std::cout << displacement.size()/3 << std::endl;
+			owHelper::log_buffer(&displacement[0], 4, displacement.size()/4,"./logs/mass_center_displacement.txt");
+		}
 		//for(int i=0;i<MUSCLE_COUNT;i++) { muscle_activation_signal_cpp[i] *= 0.9f; }
 #ifdef PY_NETWORK_SIMULATION
         //mv

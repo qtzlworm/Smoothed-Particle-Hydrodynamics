@@ -45,6 +45,8 @@ extern int numOfBoundaryP;
 extern int numOfMembranes;
 extern bool load_from_file;
 
+int MAX_ITERATION = 40;
+
 int old_x=0, old_y=0;	// Used for mouse event
 float camera_trans[] = {0, 0, -8.0};
 float camera_rot[]   = {0, 0, 0};
@@ -142,6 +144,11 @@ void display(void)
 			calculationTime = fluid_simulation->simulationStep();
 		}
 		helper->refreshTime();
+		if(fluid_simulation->getIteration() == MAX_ITERATION){
+			delete fluid_simulation;
+			delete helper;
+			exit(EXIT_SUCCESS);
+		}
 	}
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);	
@@ -899,6 +906,8 @@ void run(int argc, char** argv, const bool with_graphics, const bool load_to)
 			if(strncmp(argv[i], "device=", 7) == 0){
 				if(strstr(argv[i], "gpu") != NULL || strstr(argv[i], "GPU") != NULL)
 					dev_type = GPU;
+			}else if(atoi(argv[i])){
+				MAX_ITERATION = atoi(argv[i]);
 			}
 		}
 		fluid_simulation = new owPhysicsFluidSimulator(helper, dev_type);
@@ -943,7 +952,7 @@ void run(int argc, char** argv, const bool with_graphics, const bool load_to)
 		while(1){
 			fluid_simulation->simulationStep(load_to);
 			helper->refreshTime();
-			if(load_to && fluid_simulation->getIteration() == 40000){
+			if(load_to || fluid_simulation->getIteration() == MAX_ITERATION){
 				delete fluid_simulation;
 				delete helper;
 				exit(EXIT_SUCCESS);
