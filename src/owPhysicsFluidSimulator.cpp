@@ -327,7 +327,7 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 					std::cout << "Simulation Scale is:" << simulationScale << std::endl;*/
 					//exit(0);
 				}
-				else{
+				else if(iterationCount == 0){
 					start_volume = pow(10.0f * r0 * simulationScale,3.0f);//it because on first iteration it's a cube
 					start_density = mass * numOfLiquidP / start_volume;
 					getDensityDistrib(); //Load histogram of distribution of density to file
@@ -418,20 +418,17 @@ float calcDelta()
 	//float x[] = { 1, 1, 0,-1,-1,-1, 0, 1, 1, 1, 0,-1,-1,-1, 0, 1, 1, 1, 0,-1,-1,-1, 0, 1, 2,-2, 0, 0, 0, 0, 0, 0 };
     //float y[] = { 0, 1, 1, 1, 0,-1,-1,-1, 0, 1, 1, 1, 0,-1,-1,-1, 0, 1, 1, 1, 0,-1,-1,-1, 0, 0, 2,-2, 0, 0, 0, 0 };
     //float z[] = { 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1,-1,-1,-1,-1,-1,-1,-1,-1, 0, 0, 0, 0, 2,-2, 1,-1 };
-	float x[] = { 0.0f, 0.0f, 0.0f,0.0f, C3, C3, -C3, -C3, C0, C0, -C0,-C0, C1,C1, -C1, -C1, C2, C2, -C2,-C2, 0.0f, 0.0f, 0.0f, 0.0f, 1.5,1.5, 1.5, 1.5, -1.5, -1.5, -1.5, -1.5 };
-	float y[] = { C0, C0, -C0, -C0, 0.0f,0.0f,0.0f,0.0f, C3, -C3, C3, -C3, 0, 0, 0, 0, C1, -C1, C1, -C1, C2,C2,-C2,-C2, 1.5, 1.5, -1.5,-1.5, 1.5, 1.5, -1.5,-1.5 };
-	float z[] = { C3, -C3, C3, -C3, C0, -C0, C0, -C0, 0, 0, 0, 0, C2, -C2, C2, -C2, 0,0,0,0,C1,-C1,C1,-C1, 1.5, -1.5, 1.5, -1.5, 1.5, -1.5, 1.5, -1.5 };
+	float x[] = { 0,   0,   0,   0, C3, C3,-C3, -C3, C0,  C0, -C0, -C0, C1,  C1, -C1, -C1, C2,  C2, -C2, -C2,  0,   0,   0,   0, 1.5,  1.5,  1.5,  1.5, -1.5, -1.5, -1.5, -1.5 };
+	float y[] = { C0, C0, -C0, -C0,  0, 0,  0,    0, C3, -C3,  C3, -C3,  0,   0,   0,   0, C1, -C1,  C1, -C1, C2,  C2, -C2, -C2, 1.5,  1.5, -1.5, -1.5,  1.5,  1.5, -1.5, -1.5 };
+	float z[] = { C3,-C3,  C3, -C3, C0,-C0, C0, -C0,  0,   0,   0,   0, C2, -C2,  C2, -C2,  0,   0,   0,   0, C1, -C1,  C1, -C1, 1.5, -1.5,  1.5, -1.5,  1.5, -1.5,  1.5, -1.5 };
 	float x_c=0.f, y_c=0.f,z_c=0.f;
 	for(int i =0;i<32;i++)
 	{
-		x_c += x[i];
-		y_c += y[i];
-		z_c += z[i];
+		x[i] /= 2.5980762114;
+		y[i] /= 2.5980762114;
+		z[i] /= 2.5980762114;
 	}
-	x_c /= 32;
-	y_c /= 32;
-	z_c /= 32;
-    float sum1_x = 0.f;
+	float sum1_x = 0.f;
 	float sum1_y = 0.f;
 	float sum1_z = 0.f;
     double sum1 = 0.0, sum2 = 0.0;
