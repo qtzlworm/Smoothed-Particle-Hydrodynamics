@@ -87,6 +87,227 @@ void owHelper::refreshTime()
 #endif
 }
 
+/*Generate Configuration manually*/
+void generateBoundary(int stage, int i_start, float *position_cpp, float *velocity_cpp,  int & numOfBoundaryP, owConfigProrerty * config);
+int owHelper::generateConfiguration(int stage, float *position_cpp, float *velocity_cpp, int & numOfLiquidP, int & numOfElasticP, int & numOfBoundaryP, owConfigProrerty * config)
+{
+	float x,y,z;
+	int i=0;
+	int i_start = 0;
+	float *positionVector;
+	float *velocityVector;
+	int pCount = 0;
+	numOfElasticP = 0;
+	config->xmin = 0.0f;
+	config->xmax = 50.0f*h;
+	config->ymin = 0.0f;
+	config->ymax = 50.0f*h;
+	config->zmin = 0.0f;
+	config->zmax = 50.0f*h;
+	for(x=config->xmax/2.0f - 5.0f * r0;x<config->xmax/2.0f + 5.0f * r0;x+=r0)
+	{
+		for(y=config->ymax/2.0f  - 5.0f * r0;y<config->ymax/2.0f  + 5.0f * r0;y+=r0)
+		{
+			for(z=config->zmax/2.0f - 5.0f * r0;z<config->zmax/2.0f  + 5.0f * r0;z+=r0)
+			{
+				if(stage==1)
+				{
+					positionVector = position_cpp + 4 * (pCount);
+					positionVector[ 0 ] = x;
+					positionVector[ 1 ] = y;
+					positionVector[ 2 ] = z;
+					positionVector[ 3 ] = 1.1f;// liquid
+				}
+
+				pCount++;
+			}
+		}
+	}
+/**/
+
+	if(stage==1)
+	{
+		for(i=0;i<pCount;i++)
+		{
+			velocityVector = velocity_cpp + 4 * (i);
+			velocityVector[ 0 ] = 0;
+			velocityVector[ 1 ] = 0;
+			velocityVector[ 2 ] = 0;
+			velocityVector[ 3 ] = 0;
+		}
+	}
+	numOfLiquidP = pCount;
+	i_start = pCount;
+	generateBoundary(stage, i_start, position_cpp, velocity_cpp, numOfBoundaryP,config);
+	config->setParticleCount(pCount + numOfBoundaryP);
+	if(stage==1)
+		owHelper::log_buffer(position_cpp,4,config->getParticleCount(),"./logs/test");
+	return pCount + numOfBoundaryP;
+}
+void generateBoundary(int stage, int i_start, float *position_cpp, float *velocity_cpp,  int & numOfBoundaryP, owConfigProrerty * config){
+	//===================== create boundary particles ==========================================================
+	int nx = (int)( ( config->xmax - config->xmin ) / r0 ); //X
+	int ny = (int)( ( config->ymax - config->ymin ) / r0 ); //Y
+	int nz = (int)( ( config->zmax - config->zmin ) / r0 ); //Z
+	int ix,iy,iz;
+	int i=i_start;
+	int p_type = BOUNDARY_PARTICLE;
+	if(stage==0){
+		numOfBoundaryP = 2 * ( nx*ny + (nx+ny-2)*(nz-2) );
+		return;
+	}
+	// 1 - top and bottom
+	for(ix=0;ix<nx;ix++)
+	{
+		for(iy=0;iy<ny;iy++)
+		{
+			if( ((ix==0)||(ix==nx-1)) || ((iy==0)||(iy==ny-1)) )
+			{
+				if( ((ix==0)||(ix==nx-1)) && ((iy==0)||(iy==ny-1)) )//corners
+				{
+					position_cpp[ 4 * i + 0 ] = ix*r0 + r0/2;//x
+					position_cpp[ 4 * i + 1 ] = iy*r0 + r0/2;//y
+					position_cpp[ 4 * i + 2 ] =  0*r0 + r0/2;//z
+					position_cpp[ 4 * i + 3 ] = p_type;
+					velocity_cpp[ 4 * i + 0 ] = (1.f*(ix==0)-1*(ix==nx-1))/sqrt(3.f);//norm x
+					velocity_cpp[ 4 * i + 1 ] = (1.f*(iy==0)-1*(iy==ny-1))/sqrt(3.f);//norm y
+					velocity_cpp[ 4 * i + 2 ] =  1.f/sqrt(3.f);//norm z
+					velocity_cpp[ 4 * i + 3 ] = p_type;
+					i++;
+					position_cpp[ 4 * i + 0 ] = ix*r0 + r0/2;//x
+					position_cpp[ 4 * i + 1 ] = iy*r0 + r0/2;//y
+					position_cpp[ 4 * i + 2 ] = (nz-1)*r0 + r0/2;//z
+					position_cpp[ 4 * i + 3 ] = p_type;
+					velocity_cpp[ 4 * i + 0 ] = (1*(ix==0)-1*(ix==nx-1))/sqrt(3.f);//norm x
+					velocity_cpp[ 4 * i + 1 ] = (1*(iy==0)-1*(iy==ny-1))/sqrt(3.f);//norm y
+					velocity_cpp[ 4 * i + 2 ] = -1.f/sqrt(3.f);//norm z
+					velocity_cpp[ 4 * i + 3 ] = p_type;
+					i++;
+				}
+				else //edges
+				{
+					position_cpp[ 4 * i + 0 ] = ix*r0 + r0/2;//x
+					position_cpp[ 4 * i + 1 ] = iy*r0 + r0/2;//y
+					position_cpp[ 4 * i + 2 ] =  0*r0 + r0/2;//z
+					position_cpp[ 4 * i + 3 ] = p_type;
+					velocity_cpp[ 4 * i + 0 ] =  1.f*((ix==0)-(ix==nx-1))/sqrt(2.f);//norm x
+					velocity_cpp[ 4 * i + 1 ] =  1.f*((iy==0)-(iy==ny-1))/sqrt(2.f);//norm y
+					velocity_cpp[ 4 * i + 2 ] =  1.f/sqrt(2.f);//norm z
+					velocity_cpp[ 4 * i + 3 ] = p_type;
+					i++;
+					position_cpp[ 4 * i + 0 ] = ix*r0 + r0/2;//x
+					position_cpp[ 4 * i + 1 ] = iy*r0 + r0/2;//y
+					position_cpp[ 4 * i + 2 ] = (nz-1)*r0 + r0/2;//z
+					position_cpp[ 4 * i + 3 ] = p_type;
+					velocity_cpp[ 4 * i + 0 ] =  1.f*((ix==0)-(ix==nx-1))/sqrt(2.f);//norm x
+					velocity_cpp[ 4 * i + 1 ] =  1.f*((iy==0)-(iy==ny-1))/sqrt(2.f);//norm y
+					velocity_cpp[ 4 * i + 2 ] = -1.f/sqrt(2.f);//norm z
+					velocity_cpp[ 4 * i + 3 ] = p_type;
+					i++;
+				}
+			}
+			else //planes
+			{
+					position_cpp[ 4 * i + 0 ] = ix*r0 + r0/2;//x
+					position_cpp[ 4 * i + 1 ] = iy*r0 + r0/2;//y
+					position_cpp[ 4 * i + 2 ] =  0*r0 + r0/2;//z
+					position_cpp[ 4 * i + 3 ] = p_type;
+					velocity_cpp[ 4 * i + 0 ] =  0;//norm x
+					velocity_cpp[ 4 * i + 1 ] =  0;//norm y
+					velocity_cpp[ 4 * i + 2 ] =  1;//norm z
+					velocity_cpp[ 4 * i + 3 ] = p_type;
+					i++;
+					position_cpp[ 4 * i + 0 ] = ix*r0 + r0/2;//x
+					position_cpp[ 4 * i + 1 ] = iy*r0 + r0/2;//y
+					position_cpp[ 4 * i + 2 ] = (nz-1)*r0 + r0/2;//z
+					position_cpp[ 4 * i + 3 ] = p_type;
+					velocity_cpp[ 4 * i + 0 ] =  0;//norm x
+					velocity_cpp[ 4 * i + 1 ] =  0;//norm y
+					velocity_cpp[ 4 * i + 2 ] = -1;//norm z
+					velocity_cpp[ 4 * i + 3 ] = p_type;
+					i++;
+			}
+		}
+	}
+
+	// 2 - side walls OX-OZ and opposite
+	for(ix=0;ix<nx;ix++)
+	{
+		for(iz=1;iz<nz-1;iz++)
+		{
+			//edges
+			if((ix==0)||(ix==nx-1))
+			{
+				position_cpp[ 4 * i + 0 ] = ix*r0 + r0/2;//x
+				position_cpp[ 4 * i + 1 ] =  0*r0 + r0/2;//y
+				position_cpp[ 4 * i + 2 ] = iz*r0 + r0/2;//z
+				position_cpp[ 4 * i + 3 ] = p_type;
+				velocity_cpp[ 4 * i + 0 ] =  0;//norm x
+				velocity_cpp[ 4 * i + 1 ] =  1.f/sqrt(2.f);//norm y
+				velocity_cpp[ 4 * i + 2 ] =  1.f*((iz==0)-(iz==nz-1))/sqrt(2.f);//norm z
+				velocity_cpp[ 4 * i + 3 ] = p_type;
+				i++;
+				position_cpp[ 4 * i + 0 ] = ix*r0 + r0/2;//x
+				position_cpp[ 4 * i + 1 ] = (ny-1)*r0 + r0/2;//y
+				position_cpp[ 4 * i + 2 ] = iz*r0 + r0/2;//z
+				position_cpp[ 4 * i + 3 ] = p_type;
+				velocity_cpp[ 4 * i + 0 ] =  0;//norm x
+				velocity_cpp[ 4 * i + 1 ] = -1.f/sqrt(2.f);//norm y
+				velocity_cpp[ 4 * i + 2 ] =  1.f*((iz==0)-(iz==nz-1))/sqrt(2.f);//norm z
+				velocity_cpp[ 4 * i + 3 ] = p_type;
+				i++;
+			}
+			else //planes
+			{
+				position_cpp[ 4 * i + 0 ] = ix*r0 + r0/2;//x
+				position_cpp[ 4 * i + 1 ] =  0*r0 + r0/2;//y
+				position_cpp[ 4 * i + 2 ] = iz*r0 + r0/2;//z
+				position_cpp[ 4 * i + 3 ] = p_type;
+				velocity_cpp[ 4 * i + 0 ] =  0;//norm x
+				velocity_cpp[ 4 * i + 1 ] =  1;//norm y
+				velocity_cpp[ 4 * i + 2 ] =  0;//norm z
+				velocity_cpp[ 4 * i + 3 ] = p_type;
+				i++;
+				position_cpp[ 4 * i + 0 ] = ix*r0 + r0/2;//x
+				position_cpp[ 4 * i + 1 ] = (ny-1)*r0 + r0/2;//y
+				position_cpp[ 4 * i + 2 ] = iz*r0 + r0/2;//z
+				position_cpp[ 4 * i + 3 ] = p_type;
+				velocity_cpp[ 4 * i + 0 ] =  0;//norm x
+				velocity_cpp[ 4 * i + 1 ] = -1;//norm y
+				velocity_cpp[ 4 * i + 2 ] =  0;//norm z
+				velocity_cpp[ 4 * i + 3 ] = p_type;
+				i++;
+			}
+		}
+	}
+
+	// 3 - side walls OY-OZ and opposite
+	for(iy=1;iy<ny-1;iy++)
+	{
+		for(iz=1;iz<nz-1;iz++)
+		{
+			position_cpp[ 4 * i + 0 ] =  0*r0 + r0/2;//x
+			position_cpp[ 4 * i + 1 ] = iy*r0 + r0/2;//y
+			position_cpp[ 4 * i + 2 ] = iz*r0 + r0/2;//z
+			position_cpp[ 4 * i + 3 ] = p_type;
+			velocity_cpp[ 4 * i + 0 ] =  1;//norm x
+			velocity_cpp[ 4 * i + 1 ] =  0;//norm y
+			velocity_cpp[ 4 * i + 2 ] =  0;//norm z
+			velocity_cpp[ 4 * i + 3 ] = p_type;
+			i++;
+			position_cpp[ 4 * i + 0 ] = (nx-1)*r0 + r0/2;//x
+			position_cpp[ 4 * i + 1 ] = iy*r0 + r0/2;//y
+			position_cpp[ 4 * i + 2 ] = iz*r0 + r0/2;//z
+			position_cpp[ 4 * i + 3 ] = p_type;
+			velocity_cpp[ 4 * i + 0 ] = -1;//norm x
+			velocity_cpp[ 4 * i + 1 ] =  0;//norm y
+			velocity_cpp[ 4 * i + 2 ] =  0;//norm z
+			velocity_cpp[ 4 * i + 3 ] = p_type;
+			i++;
+		}
+	}
+};
+ /*END*/
 //READ DEFAULT CONFIGURATATION FROM FILE IN CONFIGURATION FOLDER
 int read_position = 0;
 std::string owHelper::path = "./configuration/";

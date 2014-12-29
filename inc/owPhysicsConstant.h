@@ -104,7 +104,7 @@ const float timeStep = 5.0e-06f;                    // Time step of simulation (
                                                     // ATTENTION! too large values can lead to 'explosion' of elastic matter objects
 
 /*For now we have many ways how to calculate simulation Scale*/
-const float simulationScale =  pow(6*mass/(rho0 * M_PI),1.f/3.f)/r0;// First way one particle takes some Volume = V = PI * r^3 * 4/3 where r = (simulationScale*r0/2)
+const float simulationScale =  /*0.75f **/ pow(6 * mass/(rho0 * M_PI),1.f/3.f)/r0;// First way one particle takes some Volume = V = PI * r^3 * 4/3 where r = (simulationScale*r0/2)
                                                                     // V = m/rho0 => simulationScale = (mass/(6*rho0* PI)^(1/3) * r0)
                                                                     // 0.004f*pow(mass,1.f/3.f)/pow(0.00025f,1.f/3.f);
 		                                                            // pow(mass,1.f/3.f)/pow(rho0,1.f/3.f);

@@ -131,6 +131,7 @@ void glPrint3D(float x, float y, float z, const char *s, void *font)
 }
 /** Main displaying function
  */
+extern float diameter;
 void display(void)
 {
 	//Update Scene if not paused
@@ -160,6 +161,16 @@ void display(void)
 	drawScene();
 	glPointSize(3.f);
 	glBegin(GL_POINTS);
+	if(fluid_simulation->getIteration() > 1000){
+		GLUquadricObj *quadObj;
+		quadObj = gluNewQuadric();
+		glPushMatrix();
+		//glTranslated(0.0f,0.0f,	0.0f);
+		glTranslated((fluid_simulation->centerMass[i*4]-loacalConfig->xmax/2)*sc,(fluid_simulation->centerMass[i*4+1]-loacalConfig->ymax/2)*sc,(fluid_simulation->centerMass[i*4+3]-loacalConfig->zmax/2)*sc);
+		glutWireSphere(diameter/2.0f * sc,10,10);
+		//gluSphere(quadObj, diameter/2.0f * sc,8,8);
+		glPopMatrix();
+	}
 	float dc, rho;
 	//Display all particles
 	for(i = 0; i<loacalConfig->getParticleCount(); i++)

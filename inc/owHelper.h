@@ -66,6 +66,7 @@ public:
 	void watch_report(const char *str);
 	double get_elapsedTime() { return elapsedTime; };
 	void refreshTime();
+	static int generateConfiguration(int stage, float *position_cpp, float *velocity_cpp, int & numOfLiquidP, int & numOfElasticP, int & numOfBoundaryP, owConfigProrerty * config);
 	//For output buffer
 	//Create File in which line element_size elements
 	//global_size - size of buffer / element_size
