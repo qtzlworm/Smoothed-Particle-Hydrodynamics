@@ -49,6 +49,7 @@ extern float * muscle_activation_signal_cpp;
 int iter_step = 10;				 // Count of iteration which will be skipped before logging configuration to file
 								 // NOTE: this using only in "load config to file" mode
 float diameter = 0;
+int nearestParticle = -1;
 /** Constructor method for owPhysicsFluidSimulator.
  *
  *  @param helper
@@ -76,6 +77,8 @@ owPhysicsFluidSimulator::owPhysicsFluidSimulator(owHelper * helper,DEVICE dev_ty
 		//
 		position_cpp = new float[ 4 * config->getParticleCount() ];
 		velocity_cpp = new float[ 4 * config->getParticleCount() ];
+
+		neighbourMap_cpp = new float[MAX_NEIGHBOR_COUNT * 2 * config->getParticleCount()];
 		numOfMembranes = 0;
 		muscle_activation_signal_cpp = new float [MUSCLE_COUNT];
 		if(numOfMembranes<=0)
@@ -273,17 +276,26 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 		//if(iterationCount % 100 == 0)
 		//	getDensityDistrib(); //Load histogram of distribution of density to file
 		//Calculating values of volume and density for start and end configuration
-		if(iterationCount >= 1000 || iterationCount == 0){
-			float left;
-			float right;
+		if(iterationCount == 1300/* || iterationCount == 0*/){
+			float low;
+			float high;
+			float left, right;
+
 			for(int i=0;i<config->getParticleCount();i++){
 				if((int)position_cpp[4 * i + 3] == LIQUID_PARTICLE){
+					float y = position_cpp[4 * i + 1]/* - config->xmax/2*/;
 					float x = position_cpp[4 * i + 0]/* - config->xmax/2*/;
 					if(i == 0){
+						low = y;
+						high = y;
 						left = x;
 						right = x;
 					}
 					else{
+						if(y<low)
+							low = y;
+						if(y>high)
+							high = y;
 						if(x<left)
 							left = x;
 						if(x>right)
@@ -291,53 +303,142 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 					}
 				}
 			}
-			if(right - left != 0){
-				owHelper::log_buffer(position_cpp,4, config->getParticleCount(),"./logs/position.txt");
-				diameter = fabs(right - left) ;//* simulationScale;
-				float volume;
-				float density;
-				if(iterationCount != 0 && iterationCount % 100 == 0){
-					std::ofstream outFile ("./logs/Output_Parametrs.txt");
-					if(iterationCount % 1000 == 0)
-						getDensityDistrib(); //Load histogram of distribution of density to file
-					volume = pow(diameter*simulationScale,3.0f) * 3.14159265359f * 1.0f/6.0f;
-					density = mass * numOfLiquidP / volume;
-					outFile << "Diameter of droplet is:" << diameter*simulationScale << "\n";
-					outFile << "Volume of droplet is:" << volume << "\n";
-					outFile << "Density of droplet is:" << density << "\n";
-					outFile << "Initial Volume of cube is:" << start_volume << "\n";
-					outFile << "Initial Density of cube is:" << start_density << "\n";
-					outFile << "Simulation Scale is:" << simulationScale << "\n";
-					outFile.close();
-					for(int i=0;i < config->getParticleCount();i++){
-						if((int)position_cpp[4*i+3]==LIQUID_PARTICLE){
-							centerMass[0] += position_cpp[4*i + 0];
-							centerMass[1] += position_cpp[4*i + 1];
-							centerMass[2] += position_cpp[4*i + 2];
+			
+			if(high - low != 0.0f && left - right != 0.0f){
+				float dist_x = fabs(left - right);
+				float dist_y = fabs(high - low);
+				std::ofstream outFile ("./logs/Output_Parametrs.txt");
+				//if(iterationCount % 1000 == 0)
+				getDensityDistrib(); //Load histogram of distribution of density to file
+				float volume = dist_x * dist_x * dist_y * pow(simulationScale,3.0f);
+				float density = mass * numOfLiquidP / volume;
+				outFile << "Volume of water is:" << volume << "\n";
+				outFile << "Density of water is:" << density << "\n";
+				//outFile << "Initial Volume of cube is:" << start_volume << "\n";
+				//outFile << "Initial Density of cube is:" << start_density << "\n";
+				outFile << "Simulation Scale is:" << simulationScale << "\n";
+				centerMass[0] = 0.f;
+				centerMass[1] = 0.f;
+				centerMass[2] = 0.f;
+				for(int i=0;i < config->getParticleCount();i++){
+					if((int)position_cpp[4*i+3]==LIQUID_PARTICLE){
+						centerMass[0] += position_cpp[4*i + 0];
+						centerMass[1] += position_cpp[4*i + 1];
+						centerMass[2] += position_cpp[4*i + 2];
+					}
+				}
+				centerMass[0] /= numOfLiquidP;
+				centerMass[1] /= numOfLiquidP;
+				centerMass[2] /= numOfLiquidP;
+				float dist = -1.0f;
+				float dist_temp;
+				for(int i=0;i<config->getParticleCount();i++){
+					if((int)position_cpp[4*i+3]==LIQUID_PARTICLE){
+						float x = centerMass[0] - position_cpp[4 * i + 0];
+						float y = centerMass[1] - position_cpp[4 * i + 1];
+						float z = centerMass[2] - position_cpp[4 * i + 2];
+						dist_temp = (x * x + y * y + z * z);
+						if(dist == -1.0f){
+							dist = dist_temp;
+							nearestParticle = i;
+						}else if(dist > dist_temp){
+							dist = dist_temp;
+							nearestParticle = i;
 						}
 					}
-					centerMass[0] /= numOfLiquidP;
-					centerMass[1] /= numOfLiquidP;
-					centerMass[2] /= numOfLiquidP;
-					/*std::cout << "Diameter of droplet is:" << diameter << std::endl;
-					std::cout << "Volume of droplet is:" << volume << std::endl;
-					std::cout << "Density of droplet is:" << density << std::endl;
-					std::cout << "Initial Volume of cube is:" << start_volume << std::endl;
-					std::cout << "Initial Density of cube is:" << start_density << std::endl;
-					std::cout << "Simulation Scale is:" << simulationScale << std::endl;*/
-					//exit(0);
 				}
-				else if(iterationCount == 0){
-					start_volume = pow(10.0f * r0 * simulationScale,3.0f);//it because on first iteration it's a cube
-					start_density = mass * numOfLiquidP / start_volume;
-					getDensityDistrib(); //Load histogram of distribution of density to file
+				outFile << "NearestParticle particle is:" << nearestParticle << "\n";
+				getDensity_cpp();
+				int pib;
+				getParticleIndex_cpp();
+				for(int i=0;i<config->getParticleCount();i++)
+				{
+					pib = particleIndex_cpp[2*i + 1];
+					particleIndex_cpp[2*pib + 0] = i;
+				}
+				float * correctDensity = new float[config->getParticleCount() * 1];
+				for(int i=0; i<config->getParticleCount() ;i++)
+					correctDensity[i] = density_cpp[ particleIndex_cpp[ i * 2 + 0 ] ];
+				if(nearestParticle > -1)
+					outFile << "Density of nearestParticle particle is:" << correctDensity[nearestParticle] << "\n";
+				outFile.close();
+				float * dist_dens_distr = new float[ 2 * numOfLiquidP ];
+				for(int i=0;i<config->getParticleCount();i++){
+					if((int)position_cpp[4*i+3]==LIQUID_PARTICLE){
+						dist_dens_distr[i*2 + 0] = position_cpp[ i * 4 + 1];
+						dist_dens_distr[i*2 + 1] = correctDensity[i];
+					}
+				}
+				owHelper::log_buffer(dist_dens_distr,2, numOfLiquidP,"./logs/density_13000.txt");
+				getNeghboursMap();
+				int startIndex = particleIndex_cpp[2 * nearestParticle + 0] * MAX_NEIGHBOR_COUNT * 2;
+				int endIndex = startIndex + MAX_NEIGHBOR_COUNT; 
+				owHelper::log_buffer(dist_dens_distr,2, endIndex,"./logs/neighborMap_for_nearestParticle.txt", startIndex);
+			}
+			//float left;
+			//float right;
+			//for(int i=0;i<config->getParticleCount();i++){
+			//	if((int)position_cpp[4 * i + 3] == LIQUID_PARTICLE){
+			//		float x = position_cpp[4 * i + 0]/* - config->xmax/2*/;
+			//		if(i == 0){
+			//			left = x;
+			//			right = x;
+			//		}
+			//		else{
+			//			if(x<left)
+			//				left = x;
+			//			if(x>right)
+			//				right = x;
+			//		}
+			//	}
+			//}
+			//if(right - left != 0){
+			//	owHelper::log_buffer(position_cpp,4, config->getParticleCount(),"./logs/position.txt");
+			//	diameter = fabs(right - left) ;//* simulationScale;
+			//	float volume;
+			//	float density;
+			//	if(iterationCount != 0 && iterationCount % 100 == 0){
+			//		std::ofstream outFile ("./logs/Output_Parametrs.txt");
+			//		if(iterationCount % 1000 == 0)
+			//			getDensityDistrib(); //Load histogram of distribution of density to file
+			//		volume = pow(diameter*simulationScale,3.0f) * 3.14159265359f * 1.0f/6.0f;
+			//		density = mass * numOfLiquidP / volume;
+			//		outFile << "Diameter of droplet is:" << diameter*simulationScale << "\n";
+			//		outFile << "Volume of droplet is:" << volume << "\n";
+			//		outFile << "Density of droplet is:" << density << "\n";
+			//		outFile << "Initial Volume of cube is:" << start_volume << "\n";
+			//		outFile << "Initial Density of cube is:" << start_density << "\n";
+			//		outFile << "Simulation Scale is:" << simulationScale << "\n";
+			//		outFile.close();
+			//		for(int i=0;i < config->getParticleCount();i++){
+			//			if((int)position_cpp[4*i+3]==LIQUID_PARTICLE){
+			//				centerMass[0] += position_cpp[4*i + 0];
+			//				centerMass[1] += position_cpp[4*i + 1];
+			//				centerMass[2] += position_cpp[4*i + 2];
+			//			}
+			//		}
+			//		centerMass[0] /= numOfLiquidP;
+			//		centerMass[1] /= numOfLiquidP;
+			//		centerMass[2] /= numOfLiquidP;
+			//		/*std::cout << "Diameter of droplet is:" << diameter << std::endl;
+			//		std::cout << "Volume of droplet is:" << volume << std::endl;
+			//		std::cout << "Density of droplet is:" << density << std::endl;
+			//		std::cout << "Initial Volume of cube is:" << start_volume << std::endl;
+			//		std::cout << "Initial Density of cube is:" << start_density << std::endl;
+			//		std::cout << "Simulation Scale is:" << simulationScale << std::endl;*/
+			//		//exit(0);
+			//	}
+			//	else if(iterationCount == 0){
+			//		start_volume = pow(10.0f * r0 * simulationScale,3.0f);//it because on first iteration it's a cube
+			//		start_density = mass * numOfLiquidP / start_volume;
+			//		getDensityDistrib(); //Load histogram of distribution of density to file
 
-				}
-				//std::cout << "Density of droplet is:" << simulationScale << std::endl;
-			}
-			else{
-				std::cout << "ERROR"<< std::endl;
-			}
+			//	}
+			//	//std::cout << "Density of droplet is:" << simulationScale << std::endl;
+			//}
+			//else{
+			//	std::cout << "ERROR"<< std::endl;
+			//}
 		}
 		/*END*/
 		iterationCount++;
@@ -377,10 +478,10 @@ owPhysicsFluidSimulator::~owPhysicsFluidSimulator(void)
 float calcDelta()
 {
 
-	float C0 = 3 * (sqrt(5) - 1) / 4; //= 0.927050983124842272306880251548
-	float C1 = 9 * (9 + sqrt(5)) / 76;//= 1.33058699733550141141687582919
-	float C2 = 9 * (7 + 5 * sqrt(5)) / 76;//= 2.15293498667750705708437914596
-	float C3 = 3 * (1 + sqrt(5)) / 4;     //= 2.427050983124842272306880251548
+	float C0 = 3.f * (sqrt(5.0f) - 1.f) / 4.f; //= 0.927050983124842272306880251548
+	float C1 = 9.f * (9.f + sqrt(5.0f)) / 76.f;//= 1.33058699733550141141687582919
+	float C2 = 9.f * (7.f + 5 * sqrt(5.0f)) / 76.f;//= 2.15293498667750705708437914596
+	float C3 = 3.f * (1.f + sqrt(5.0f)) / 4.f;     //= 2.427050983124842272306880251548
 
 	/*V0  = ( 0.0,   C0,   C3)
 	V1  = ( 0.0,   C0,  -C3)
@@ -424,9 +525,10 @@ float calcDelta()
 	float x_c=0.f, y_c=0.f,z_c=0.f;
 	for(int i =0;i<32;i++)
 	{
-		x[i] /= 2.5980762114;
-		y[i] /= 2.5980762114;
-		z[i] /= 2.5980762114;
+		float dist1 = sqrt(x[i]*x[i]+y[i]*y[i]+z[i]*z[i]);//scaled, right?
+		x[i] /= dist1;
+		y[i] /= dist1;
+		z[i] /= dist1;
 	}
 	float sum1_x = 0.f;
 	float sum1_y = 0.f;
@@ -441,8 +543,8 @@ float calcDelta()
 	float r_ij2;
 	/* I suppose that particle radius here should equal to real length of r0 = h/2 (real length r0 * simulationScale)
 	 * because we generate configuration and arrange particles such way that they located from each other not further that r0
-	 * */
-	float particleRadius = simulationScale * r0;/*pow(mass/rho0,1.f/3.f);*/  //
+	 */
+	float particleRadius = simulationScale * r0 ;//* 1.13f;/*pow(mass/rho0,1.f/3.f);*/  //
 
 	float h_r_2;
 	int counter = 0;

@@ -70,11 +70,11 @@ public:
 	//For output buffer
 	//Create File in which line element_size elements
 	//global_size - size of buffer / element_size
-	template<typename T> static void log_buffer(const T * buffer, const int element_size, const int global_size, const char * fileName)
+	template<typename T> static void log_buffer(const T * buffer, const int element_size, const int global_size, const char * fileName, int start=0)
 	{
 		try{
 			std::ofstream outFile (fileName);
-			for(int i = 0; i < global_size; i++)
+			for(int i = start; i < global_size; i++)
 			{
 				for(int j = 0; j < element_size; j++)
 				{

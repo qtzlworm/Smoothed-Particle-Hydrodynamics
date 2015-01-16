@@ -44,6 +44,7 @@ extern int numOfElasticP;
 extern int numOfBoundaryP;
 extern int numOfMembranes;
 extern bool load_from_file;
+extern int nearestParticle;
 
 int old_x=0, old_y=0;	// Used for mouse event
 float camera_trans[] = {0, 0, -8.0};
@@ -161,20 +162,24 @@ void display(void)
 	drawScene();
 	glPointSize(3.f);
 	glBegin(GL_POINTS);
-	if(fluid_simulation->getIteration() > 1000){
-		GLUquadricObj *quadObj;
-		quadObj = gluNewQuadric();
-		glPushMatrix();
-		//glTranslated(0.0f,0.0f,	0.0f);
-		glTranslated((fluid_simulation->centerMass[i*4]-loacalConfig->xmax/2)*sc,(fluid_simulation->centerMass[i*4+1]-loacalConfig->ymax/2)*sc,(fluid_simulation->centerMass[i*4+3]-loacalConfig->zmax/2)*sc);
-		glutWireSphere(diameter/2.0f * sc,10,10);
-		//gluSphere(quadObj, diameter/2.0f * sc,8,8);
-		glPopMatrix();
+	//if(fluid_simulation->getIteration() > 1000){
+	//	GLUquadricObj *quadObj;
+	//	quadObj = gluNewQuadric();
+	//	glPushMatrix();
+	//	//glTranslated(0.0f,0.0f,	0.0f);
+	//	glTranslated((fluid_simulation->centerMass[i*4]-loacalConfig->xmax/2)*sc,(fluid_simulation->centerMass[i*4+1]-loacalConfig->ymax/2)*sc,(fluid_simulation->centerMass[i*4+3]-loacalConfig->zmax/2)*sc);
+	//	glutWireSphere(diameter/2.0f * sc,10,10);
+	//	//gluSphere(quadObj, diameter/2.0f * sc,8,8);
+	//	glPopMatrix();
+	//}
+	if(fluid_simulation->getIteration() == 1301){
+		sPause = true;
 	}
 	float dc, rho;
 	//Display all particles
 	for(i = 0; i<loacalConfig->getParticleCount(); i++)
 	{
+		bool show = false;
 		if(!load_from_file){
 			rho = d_cpp[ p_indexb[ i * 2 + 0 ] ];
 			if( rho < 0 ) rho = 0;
@@ -189,17 +194,35 @@ void display(void)
 				if( (dc=100*(rho-rho0*1.02f)/rho0) >0 )	glColor4f(  dc,   1,   0,1.0f);//yellow
 				if( (dc=100*(rho-rho0*1.03f)/rho0) >0 )	glColor4f(   1,1-dc,   0,1.0f);//red
 				if( (dc=100*(rho-rho0*1.04f)/rho0) >0 )	glColor4f(   1,   0,   0,1.0f);
+
+
+				if( (rho) < 600 ){	
+					glColor4f(   1,0,   0,1.0f);//red
+					show = true;
+				}
+				if( rho > 600  && rho < 900){	
+					glColor4f(   1, 1, 0, 1.0f);//red
+					show = true;
+				}
+				if( rho > 900  && rho <= 1000){	
+					glColor4f(   0, 0, 1, 1.0f);//red
+					show = true;
+				}
 			}
 		}
 		else
 			glColor4f(  0,  0,  1, 1.0f);//blue
-		if((int)p_cpp[i*4 + 3] != BOUNDARY_PARTICLE /*&& (int)p_cpp[i*4 + 3] != ELASTIC_PARTICLE*/)
+		if((int)p_cpp[i*4 + 3] != BOUNDARY_PARTICLE /*&& (int)p_cpp[i*4 + 3] != ELASTIC_PARTICLE*/ && show || i == nearestParticle)
 		{
 			glBegin(GL_POINTS);
 			if((int)p_cpp[i*4+3]==2) 
 			{ 
 				glColor4f(   0,   0,   0,  1.0f);// color of elastic particles
 				glPointSize(6.f);
+			}
+			if(i == nearestParticle){
+				int cc = 0;
+				cc += 1;
 			}
 			glVertex3f( (p_cpp[i*4]-loacalConfig->xmax/2)*sc , (p_cpp[i*4+1]-loacalConfig->ymax/2)*sc, (p_cpp[i*4+2]-loacalConfig->zmax/2)*sc );
 			glPointSize(3.f);
@@ -222,6 +245,14 @@ void display(void)
 			}
 		}
 	}
+	//Draw Ceneter MASS
+	glBegin(GL_POINTS);
+	glColor4f(   0,   0,   1,  1.0f);// color of elastic particles
+	glPointSize(6.f);
+	glVertex3f( (fluid_simulation->centerMass[0]-loacalConfig->xmax/2)*sc , (fluid_simulation->centerMass[1]-loacalConfig->ymax/2)*sc, (fluid_simulation->centerMass[2]-loacalConfig->zmax/2)*sc );
+	glPointSize(3.f);
+	glEnd();
+	//End
 	glLineWidth((GLfloat)0.1);
 	int ecc=0;//elastic connections counter;
 	//Display elastic connections

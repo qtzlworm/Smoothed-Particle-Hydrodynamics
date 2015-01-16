@@ -99,14 +99,14 @@ int owHelper::generateConfiguration(int stage, float *position_cpp, float *veloc
 	int pCount = 0;
 	numOfElasticP = 0;
 	config->xmin = 0.0f;
-	config->xmax = 50.0f*h;
+	config->xmax = 8.0f*h;
 	config->ymin = 0.0f;
-	config->ymax = 50.0f*h;
+	config->ymax = 20.0f*h;
 	config->zmin = 0.0f;
-	config->zmax = 50.0f*h;
+	config->zmax = 8.0f*h;
 	for(x=config->xmax/2.0f - 5.0f * r0;x<config->xmax/2.0f + 5.0f * r0;x+=r0)
 	{
-		for(y=config->ymax/2.0f  - 5.0f * r0;y<config->ymax/2.0f  + 5.0f * r0;y+=r0)
+		for(y=config->ymax/2.0f  - 10.0f * r0;y<config->ymax/2.0f  + 10.0f * r0;y+=r0)
 		{
 			for(z=config->zmax/2.0f - 5.0f * r0;z<config->zmax/2.0f  + 5.0f * r0;z+=r0)
 			{

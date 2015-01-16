@@ -594,7 +594,7 @@ __kernel void pcisph_computeForcesAndInitPressure(
 					printf("==================ACELERATION FROM SURFACE TENSION===============================\n");
 					printf("surfTensCoeff * surffKern = %e\n",surfTensCoeff * surffKern);																	
 				}*/
-				accel_surfTensForce += -1.9e-09f * surfTensCoeff * surffKern * (sortedPosition[id]-sortedPosition[jd]);
+				//accel_surfTensForce += -1.5e-9f * surfTensCoeff * surffKern * (sortedPosition[id]-sortedPosition[jd]);
 			}
 		}
 	}while(  ++nc < MAX_NEIGHBOR_COUNT );
