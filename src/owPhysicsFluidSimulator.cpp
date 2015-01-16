@@ -373,7 +373,7 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 				getNeghboursMap();
 				int startIndex = particleIndex_cpp[2 * nearestParticle + 0] * MAX_NEIGHBOR_COUNT * 2;
 				int endIndex = startIndex + MAX_NEIGHBOR_COUNT; 
-				owHelper::log_buffer(dist_dens_distr,2, endIndex,"./logs/neighborMap_for_nearestParticle.txt", startIndex);
+				owHelper::log_buffer(neighbourMap_cpp,2, endIndex,"./logs/neighborMap_for_nearestParticle.txt", startIndex);
 			}
 			//float left;
 			//float right;
