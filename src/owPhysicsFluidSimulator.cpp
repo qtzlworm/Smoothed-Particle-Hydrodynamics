@@ -48,6 +48,15 @@ int numOfMembranes = 0;
 extern float * muscle_activation_signal_cpp;
 int iter_step = 10;
 
+int start_iteration = 32279;//3000;//13055;
+int end_iter = 93279;//125000;//69106;
+
+int minPoint;
+int maxPoint;
+
+std::vector< std::vector<Vector3D> > chord_displacememtn;
+
+
 
 extern int MAX_ITERATION;
 //mv
@@ -57,6 +66,7 @@ extern int MAX_ITERATION;
 PyramidalSimulation simulation;
 #endif
 std::vector<int> memParticle;
+std::vector<int> muscle_particles;
 void fillMemId(int * particleMembranesList_cpp){
 	for(int i=0;i < numOfElasticP ;i++){
 		if(particleMembranesList_cpp[MAX_MEMBRANES_INCLUDING_SAME_PARTICLE * i + 0]!=-1){
@@ -65,7 +75,50 @@ void fillMemId(int * particleMembranesList_cpp){
 	}
 	std::cout << memParticle.size() << std::endl;
 }
-
+void fillMuscleParticles(float * position_cpp, float * elasticConnectionsData_cpp, owConfigProrerty * config){
+	for(int i = 0;i < config->getParticleCount();i++){
+		if((int)position_cpp[i*4 + 3] == ELASTIC_PARTICLE){
+			for(int j=0;j<MAX_NEIGHBOR_COUNT;j++){
+				if(elasticConnectionsData_cpp[MAX_NEIGHBOR_COUNT * i * 4 + 4 * j + 2] > 0.0){
+					muscle_particles.push_back(i);
+					break;
+				}
+			}
+		}
+	}
+}
+void owPhysicsFluidSimulator::calcHordDisplacement(){
+	int slice_count = 10;
+	if(iterationCount == 0){
+		minPoint = memParticle[0];
+		maxPoint = memParticle[0];
+		for(int i=1;i < memParticle.size();i++){
+			if(position_cpp[4 * minPoint + 2] > position_cpp[4* memParticle[i] + 2])
+				minPoint = memParticle[i];
+			if(position_cpp[4 * maxPoint + 2] < position_cpp[4* memParticle[i] + 2])
+				maxPoint = memParticle[i];
+		}
+	}
+	float distance_ = fabs(position_cpp[4* maxPoint + 2] - position_cpp[4*minPoint + 2]);
+	std::vector<int> pointsHisto;
+	chord.clear();
+	chord.resize(slice_count, Vector3D());
+	pointsHisto.resize(slice_count,0);
+	for(int index=1;index < memParticle.size();index++){
+		int i = memParticle[index];
+		for(int j = 0;j < slice_count;j++){
+			if(position_cpp[4*i + 2] > position_cpp[ 4 * minPoint + 2 ] + j * distance_/slice_count && position_cpp[4*i + 2] < position_cpp[ 4 * minPoint + 2 ] + (j+1) * distance_/slice_count){
+				chord[j]+= Vector3D(position_cpp[4*i + 0],position_cpp[4*i + 1],position_cpp[4*i + 2]);
+				pointsHisto[j] += 1;
+			}
+		}
+	}
+	for(int i=0;i<chord.size();i++){
+		chord[i] /= pointsHisto[i];
+	}
+	chord.push_back(Vector3D(position_cpp[4*minPoint + 0],position_cpp[4*minPoint + 1],position_cpp[4*minPoint + 2]));
+	chord.push_back(Vector3D(position_cpp[4*maxPoint + 0],position_cpp[4*maxPoint + 1],position_cpp[4*maxPoint + 2]));
+}
 std::vector<float> displacement;
 void owPhysicsFluidSimulator::calcCMDisplacement(float * position_buffer, owConfigProrerty * config){
 	float dispacement[4];
@@ -146,6 +199,10 @@ owPhysicsFluidSimulator::owPhysicsFluidSimulator(owHelper * helper,const int dev
 		else 
 		// LOAD FROM FILE	
 		owHelper::loadConfiguration( position_cpp, velocity_cpp, elasticConnectionsData_cpp, numOfLiquidP, numOfElasticP, numOfBoundaryP, numOfElasticConnections, numOfMembranes,membraneData_cpp, particleMembranesList_cpp, config );		//Load configuration from file to buffer
+		//owHelper::log_buffer(elasticConnectionsData_cpp,4, numOfElasticP*MAX_NEIGHBOR_COUNT,"./logs/conection_test");
+		fillMemId(particleMembranesList_cpp);
+		fillMuscleParticles(position_cpp,elasticConnectionsData_cpp,config);
+		//calcHordDisplacement();
 		if(numOfElasticP != 0){
 			ocl_solver = new owOpenCLSolver(position_cpp, velocity_cpp, config, elasticConnectionsData_cpp, membraneData_cpp, particleMembranesList_cpp);	//Create new openCLsolver instance
 		}else
@@ -266,21 +323,34 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 		printf("_Total_step_time:\t%9.3f ms\n",helper->get_elapsedTime());
 		printf("------------------------------------\n");
 		if(load_to){
-			if(iterationCount == 0){
+			if(iterationCount == start_iteration){
 				owHelper::loadConfigurationToFile(position_cpp, config, memParticle, elasticConnectionsData_cpp,membraneData_cpp,true);
+				owHelper::loadConfigurationToFile(position_cpp, config, muscle_particles, elasticConnectionsData_cpp,membraneData_cpp,true, "./buffers/position_buffer_muscle.txt","./buffers/connection_buffer_muscle.txt","./buffers/membranes_buffer_muscle.txt");
 			}else{
-				if(iterationCount % iter_step == 0){
+				if(iterationCount % iter_step == 0 && iterationCount > start_iteration){
 					owHelper::loadConfigurationToFile(position_cpp, config, memParticle, NULL, NULL, false);
+					owHelper::loadConfigurationToFile(position_cpp, config, muscle_particles, NULL, NULL, false, "./buffers/position_buffer_muscle.txt");
 				}
+			}
+			if(iterationCount >= start_iteration && iterationCount % iter_step == 0){
+			//	calcHordDisplacement();
+			//	chord_displacememtn.push_back(chord);
+				owHelper::log_buffer_m(muscle_activation_signal_cpp, MUSCLE_COUNT, (iterationCount - start_iteration), "./buffers/muscle_signal_evo.txt");
 			}
 		}
 		//WRITE TRAJECTORY
-		calcCMDisplacement(position_cpp,config);
+		//calcCMDisplacement(position_cpp,config);
 		//
+		if(iterationCount == end_iter)
+		{
+			//owHelper::log_buffer11(/*&displacement[0]*/chord_displacememtn, "./buffers/hors_displacement.txt");
+			exit(0);
+		}
 		iterationCount++;
+
 		if(iterationCount == MAX_ITERATION){
-			std::cout << displacement.size()/3 << std::endl;
-			owHelper::log_buffer(&displacement[0], 4, displacement.size()/4,"./logs/mass_center_displacement.txt");
+			std::cout << displacement.size()/4 << std::endl;
+			//owHelper::log_buffer11(/*&displacement[0]*/chord_displacememtn, "./logs/hors_displacement.txt");
 		}
 		//for(int i=0;i<MUSCLE_COUNT;i++) { muscle_activation_signal_cpp[i] *= 0.9f; }
 #ifdef PY_NETWORK_SIMULATION

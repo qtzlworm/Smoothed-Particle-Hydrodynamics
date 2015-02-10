@@ -37,7 +37,7 @@
 #include "owPhysicsConstant.h"
 #include "owHelper.h"
 #include "owOpenCLSolver.h"
-
+#include "VectorMath.h"
 class owPhysicsFluidSimulator
 {
 public:
@@ -55,6 +55,8 @@ public:
 	owConfigProrerty * getConfig(){ return config; };
 	const int getIteration(){ return iterationCount; };
 	void reset();
+	void calcHordDisplacement();
+	std::vector<Vector3D> chord;
 private:
 	owOpenCLSolver * ocl_solver;
 	float * position_cpp;				// everywhere in the code %variableName%_cpp means that we create 

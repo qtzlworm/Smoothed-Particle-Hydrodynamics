@@ -43,7 +43,7 @@
 #include <mach/mach_time.h>
 #endif
 
-#define EXPEREMENTAL_WRITE 0
+#define EXPEREMENTAL_WRITE 1
 #if EXPEREMENTAL_WRITE
 #define EXPEREMENTAL_READ
 #endif
@@ -1577,12 +1577,12 @@ template<typename T>
 std::ostream& binary_write(std::ostream& stream, const T& value){
     return stream.write(reinterpret_cast<const char*>(&value), sizeof(T));
 }
-void owHelper::loadConfigurationToFile(float * position, owConfigProrerty * config, std::vector<int> & filter, float * connections, int * membranes, bool firstIteration){
+void owHelper::loadConfigurationToFile(float * position, owConfigProrerty * config, std::vector<int> & filter, float * connections, int * membranes, bool firstIteration, char * position_file, char * connection_file, char * membrane_file){
 	try{
 		ofstream positionFile;
 		if(firstIteration){
 #if !EXPEREMENTAL_WRITE
-			positionFile.open("./buffers/position_buffer.txt", ios::trunc);
+			positionFile.open(position_file, ios::trunc);
 			positionFile << config->xmin << "\n";
 			positionFile << config->xmax << "\n";
 			positionFile << config->ymin << "\n";
@@ -1590,14 +1590,14 @@ void owHelper::loadConfigurationToFile(float * position, owConfigProrerty * conf
 			positionFile << config->zmin << "\n";
 			positionFile << config->zmax << "\n";
 #else
-			positionFile.open("./buffers/position_buffer.txt", ios::trunc|ios::binary);
+			positionFile.open(position_file, ios::trunc|ios::binary);
 			binary_write(positionFile,config->xmin);
 			binary_write(positionFile,config->xmax);
 			binary_write(positionFile,config->ymin);
 			binary_write(positionFile,config->ymax);
 			binary_write(positionFile,config->zmin);
 			binary_write(positionFile,config->zmax);
-			binary_write(positionFile,40000.0f);
+			binary_write(positionFile,61000.0f);
 #endif
 			if(!filter.empty()){
 #if !EXPEREMENTAL_WRITE
@@ -1619,9 +1619,9 @@ void owHelper::loadConfigurationToFile(float * position, owConfigProrerty * conf
 			}
 		}else{
 #if !EXPEREMENTAL_WRITE
-			positionFile.open("./buffers/position_buffer.txt", ios::app);
+			positionFile.open(position_file, ios::app);
 #else
-			positionFile.open("./buffers/position_buffer.txt", ios::app|ios::binary);
+			positionFile.open(position_file, ios::app|ios::binary);
 #endif
 		}
 		if(filter.empty()){
@@ -1634,21 +1634,24 @@ void owHelper::loadConfigurationToFile(float * position, owConfigProrerty * conf
 			int i = 0;
 			for(unsigned int index = 0; index<filter.size(); index++){
 				i = filter[index];
-				//positionFile << position[i * 4 + 0] << "\t" << position[i * 4 + 1] << "\t" << position[i * 4 + 2] << "\t" << position[i * 4 + 3] << "\n";
+#if !EXPEREMENTAL_WRITE
+				positionFile << position[i * 4 + 0] << "\t" << position[i * 4 + 1] << "\t" << position[i * 4 + 2] << "\t" << position[i * 4 + 3] << "\n";
+#else
 				binary_write(positionFile,position[i * 4 + 0]);
 				binary_write(positionFile,position[i * 4 + 1]);
 				binary_write(positionFile,position[i * 4 + 2]);
 				binary_write(positionFile,position[i * 4 + 3]);
+#endif
 			}
 		}
 		positionFile.close();
 		if(firstIteration){
-			ofstream connectionFile("./buffers/connection_buffer.txt", std::ofstream::trunc);
+			ofstream connectionFile(connection_file, std::ofstream::trunc);
 			int con_num = MAX_NEIGHBOR_COUNT * numOfElasticP;
 			for(int i = 0; i < con_num; i++)
 				connectionFile << connections[4 * i + 0] << "\t" << connections[4 * i + 1] << "\t" << connections[4 * i + 2] << "\t" << connections[4 * i + 3] << "\n";
 			connectionFile.close();
-			ofstream membranesFile("./buffers/membranes_buffer.txt", std::ofstream::trunc);
+			ofstream membranesFile(membrane_file, std::ofstream::trunc);
 			membranesFile << numOfMembranes << "\n";
 			for(int i = 0; i < numOfMembranes; i++)
 				membranesFile << membranes[4 * i + 0] << "\t" << membranes[4 * i + 1] << "\t" << membranes[4 * i + 2] << "\t" << membranes[4 * i + 3] << "\n";
@@ -1661,13 +1664,14 @@ void owHelper::loadConfigurationToFile(float * position, owConfigProrerty * conf
 }
 //This function needed for visualiazation buffered data
 long position_index = 0;
+int start_reading;
 ifstream positionFile;
-void owHelper::loadConfigurationFromFile_experemental(float *& position, float *& connections, int *& membranes, owConfigProrerty * config, int iteration){
+int owHelper::loadConfigurationFromFile_experemental(float *& position, float *& connections, int *& membranes, owConfigProrerty * config, int iteration){
 	try{
 		if(iteration == 0)
-			positionFile.open("./buffers/position_buffer.txt");
+			positionFile.open("./buffers/hors_displacement.txt");//position_buffer.txt");
 		int i = 0;
-		float x, y, z, p_type;
+		float x, y, z, p_type = -1;
 		if( positionFile.is_open() )
 		{
 			if(iteration == 0){
@@ -1679,26 +1683,33 @@ void owHelper::loadConfigurationFromFile_experemental(float *& position, float *
 				positionFile >> config->zmax;
 				positionFile >> numOfElasticP;
 				positionFile >> numOfLiquidP;
-				config->setParticleCount(numOfElasticP + numOfLiquidP);
-				position = new float[4 * config->getParticleCount()];
+				config->setParticleCount((numOfElasticP + numOfLiquidP));
+				position = new float[4 * config->getParticleCount()* 1];
+				start_reading = positionFile.tellg();
 			}
 			while( positionFile.good() &&  i < config->getParticleCount())
 			{
 				positionFile >> x >> y >> z >> p_type;
-				position[i * 4 + 0] = x;
-				position[i * 4 + 1] = y;
-				position[i * 4 + 2] = z;
-				position[i * 4 + 3] = p_type;
+				if(iteration % 1 == 0)
+				if((int)p_type > 0){
+					position[i * 4 + 0] = x;
+					position[i * 4 + 1] = y;
+					position[i * 4 + 2] = z;
+					position[i * 4 + 3] = p_type;
+				}
 				i++;
 			}
 		}
 		if(!positionFile.good()){
-			positionFile.close();
-			exit(0);
+			positionFile.clear();
+			positionFile.seekg(start_reading);
+			return 1;
+			//positionFile.close();
+			//exit(0);
 		}
 		if(iteration == 0){
 
-			ifstream connectionFile("./buffers/connection_buffer.txt");
+			/*ifstream connectionFile("./buffers/connection_centrmass_p");//connection_buffer.txt");
 			connections = new float[MAX_NEIGHBOR_COUNT * numOfElasticP * 4];
 			if( connectionFile.is_open() )
 			{
@@ -1725,12 +1736,13 @@ void owHelper::loadConfigurationFromFile_experemental(float *& position, float *
 					i++;
 				}
 			}
-			membranesFile.close();
+			membranesFile.close();*/
 		}
 	}catch(std::exception &e){
 		std::cout << "ERROR: " << e.what() << std::endl;
 		exit( -1 );
 	}
+	return 0;
 }
 void owHelper::watch_report( const char * str )
 {
