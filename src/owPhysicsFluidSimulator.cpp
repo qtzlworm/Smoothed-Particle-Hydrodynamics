@@ -49,7 +49,7 @@ extern float * muscle_activation_signal_cpp;
 int iter_step = 10;
 
 int start_iteration = 32279;//3000;//13055;
-int end_iter = 93279;//125000;//69106;
+int end_iter = 98159;//93279;//125000;//69106;
 
 int minPoint;
 int maxPoint;
