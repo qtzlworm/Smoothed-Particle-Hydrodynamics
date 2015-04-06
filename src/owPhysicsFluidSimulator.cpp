@@ -34,6 +34,7 @@
 #include <stdexcept>
 #include <iostream>
 #include <fstream>
+#include <sstream>
 
 #include "owPhysicsFluidSimulator.h"
 
@@ -172,7 +173,6 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 	// one of the grand challenges of this project
 
 	//if(iterationCount==0) return 0.0;//uncomment this line to stop movement of the scene
-
 	helper->refreshTime();
 	printf("\n[[ Step %d ]]\n",iterationCount);
 	try{
@@ -222,6 +222,19 @@ double owPhysicsFluidSimulator::simulationStep(const bool load_to)
 				}
 			}
 		}
+		if(iterationCount == 1){
+			std::string file_name = "./logs/iteration_1_";
+			std::stringstream ss;
+			ss << iterationCount;
+			file_name += ss.str();
+			owHelper::log_buffer(position_cpp, 4, config->getParticleCount(), (file_name + "_position").c_str());
+			getvelocity_cpp();
+			owHelper::log_buffer(velocity_cpp, 4, config->getParticleCount(), (file_name + "_velocity").c_str());
+			getDensity_cpp();
+			owHelper::log_buffer(density_cpp, 1, config->getParticleCount(), (file_name + "_density").c_str());
+		}
+		if(iterationCount == 5)
+			exit(0);
 		iterationCount++;
 		//for(int i=0;i<MUSCLE_COUNT;i++) { muscle_activation_signal_cpp[i] *= 0.9f; }
 		ocl_solver->updateMuscleActivityData(muscle_activation_signal_cpp);

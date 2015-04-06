@@ -601,7 +601,16 @@ __kernel void pcisph_computeForcesAndInitPressure(
 	acceleration_i = accel_viscosityForce;
 	acceleration_i += (float4)( gravity_x, gravity_y, gravity_z, 0.0f );
 	acceleration_i +=  accel_surfTensForce; //29aug_A.Palyanov
+	float acceleration_i_l = sqrt(DOT(acceleration_i,acceleration_i));
+	/*if(acceleration_i_l > 100){
+		printf("=======Kernel INIT PRESSURE Forces Calc=======\n");
+		printf("Before changing acceleration is x y z: %e, %e, %e\n", acceleration[ id ].x, acceleration[ id ].y, acceleration[ id ].z);
+	}*/
 	acceleration[ id ] = acceleration_i; 
+	/*if(acceleration_i_l > 100){
+		printf("After changing acceleration is x y z: %e, %e, %e\n", acceleration[ id ].x, acceleration[ id ].y, acceleration[ id ].z);
+		printf("=====================Kernel END INIT PRESSURE Forces Calc=======================\n");
+	}*/
 	// 1st half of 'acceleration' array is used to store acceleration corresponding to gravity, visc. force etc.
 	acceleration[ PARTICLE_COUNT+id ] = (float4)(0.0f, 0.0f, 0.0f, 0.0f );
 	// 2nd half of 'acceleration' array is used to store pressure force
@@ -648,6 +657,11 @@ __kernel void pcisph_computeElasticForces(
 	float4 proj_v_i_cm_on_r_ij;
 	int jd;
 	int i;
+	float4 vec;
+	float vec_len;
+	if(elasticityCoefficient != 6.000000e+08f){
+		printf("%e\n", elasticityCoefficient);
+	}
 	do
 	{
 		if( (jd = (int)elasticConnectionsData[ idx + nc ].x) != NO_PARTICLE_ID )
@@ -660,13 +674,32 @@ __kernel void pcisph_computeElasticForces(
 			delta_r_ij = r_ij - r_ij_equilibrium;//scale ok
 			if(r_ij!=0.f)
 			{
-				acceleration[ id ] += -(vect_r_ij/r_ij) * delta_r_ij * elasticityCoefficient;
+				vec = -(vect_r_ij/r_ij) * delta_r_ij * elasticityCoefficient;//6.000000e+08f;
+				vec_len = sqrt(DOT(vec, vec));
+
+				if(vec_len > 100){
+					printf("=======Kernel elastic Forces Calc=======\n");
+					printf("in do while cycle step %d\n", nc);
+					printf("index is %d\n", index);
+					printf("r_ij is %e\n", r_ij);
+					printf("delta is %e\n", delta_r_ij);
+					printf("vect_r_ij x y z: %e, %e, %e\n", vect_r_ij.x, vect_r_ij.y, vect_r_ij.z);
+					printf("Before changing acceleration is x y z: %e, %e, %e\n", acceleration[ id ].x, acceleration[ id ].y, acceleration[ id ].z);
+					printf("vec x y z: %e, %e, %e\n", vec.x, vec.y, vec.z);
+					printf("vec length is %e\n", vec_len);
+				}
+				//acceleration[ id ] += vec;
+				if(vec_len > 100){
+					printf("After changing acceleration is x y z: %e, %e, %e\n", acceleration[ id ].x, acceleration[ id ].y, acceleration[ id ].z);
+					printf("============================================\n");
+				}
 				for(i=0;i<MUSCLE_COUNT;i++)//check all muscles
 				{
 					if((int)(elasticConnectionsData[idx+nc].z)==(i+1))//contractible spring, = muscle
 					{
-						if(muscle_activation_signal[i]>0.f)
+						if(muscle_activation_signal[i]>0.f){
 							acceleration[ id ] += -(vect_r_ij/r_ij) * muscle_activation_signal[i] * (1300.0f + 500.f) * 3.25e-14f / mass; // mass was forgotten here
+						}
 					}
 				}
 			}
@@ -674,6 +707,7 @@ __kernel void pcisph_computeElasticForces(
 		else
 			break;//once we meet NO_PARTICLE_ID in the list of neighbours, it means that all the rest till the end are also NO_PARTICLE_ID
 	}while( ++nc < MAX_NEIGHBOR_COUNT );
+	
 	return;
 }
 // Boundary handling, according to the following article:
