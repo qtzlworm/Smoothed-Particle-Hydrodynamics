@@ -53,6 +53,8 @@ public:
 	int gridCellsY;
 	int gridCellsZ;
 	int gridCellCount;
+	float timeStep;
+	float timeLimit;
 	const int getParticleCount(){ return PARTICLE_COUNT; };
 	void setParticleCount(int value){
 		PARTICLE_COUNT = value;

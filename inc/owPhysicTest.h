@@ -11,7 +11,7 @@
 #include "owPhysicsFluidSimulator.h"
 
 void test_energy_conservation();
-void test_gravity();
+void test_gravity(int argc, char **argv);
 
 
 #endif /* OWPHYSICTEST_H_ */

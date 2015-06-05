@@ -690,7 +690,7 @@ unsigned int owOpenCLSolver::_run_pcisph_predictPositions(owConfigProrerty * con
 	pcisph_predictPositions.setArg( 6, gravity_y );
 	pcisph_predictPositions.setArg( 7, gravity_z );
 	pcisph_predictPositions.setArg( 8, simulationScaleInv );
-	pcisph_predictPositions.setArg( 9, timeStep );
+	pcisph_predictPositions.setArg( 9, config->timeStep );
 	pcisph_predictPositions.setArg(10, position );
 	pcisph_predictPositions.setArg(11, velocity );
 	pcisph_predictPositions.setArg(12, r0 );
@@ -930,7 +930,7 @@ unsigned int owOpenCLSolver::_run_pcisph_integrate(int iterationCount, int pcisp
 	pcisph_integrate.setArg( 6, gravity_y );
 	pcisph_integrate.setArg( 7, gravity_z );
 	pcisph_integrate.setArg( 8, simulationScaleInv );
-	pcisph_integrate.setArg( 9, timeStep );
+	pcisph_integrate.setArg( 9, config->timeStep );
 	pcisph_integrate.setArg( 10, config->xmin );
 	pcisph_integrate.setArg( 11, config->xmax );
 	pcisph_integrate.setArg( 12, config->ymin );

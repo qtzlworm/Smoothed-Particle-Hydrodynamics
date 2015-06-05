@@ -42,6 +42,7 @@
 #include <string>
 #include <vector>
 #include <cmath>        // std::abs
+#include <sstream>
 
 #include "owPhysicTest.h"
 
@@ -94,11 +95,27 @@ void test_energy_conservation(){
 	delete fluid_simulation;
 }
 
-void test_gravity(){
+void test_gravity(int argc, char** argv){
 	owHelper::path = "./configuration/test/";
 	owHelper::suffix = "_elastic_one";
 	owHelper * helper = new owHelper();
 	owPhysicsFluidSimulator * fluid_simulation = new owPhysicsFluidSimulator(helper);
+	float time_step = timeStep;
+	float time_lim = 0;
+	for(int i = 1; i<argc; i++){
+		if(strncmp(argv[i], "timestep=", 9) == 0){
+			std::string temp_str(argv[i]);
+			std::string t_step = temp_str.substr(temp_str.find('=')+1);
+			time_step = ::atof(t_step.c_str());
+		}
+		if(strncmp(argv[i], "timelimit=", 10) == 0){
+			std::string temp_str(argv[i]);
+			std::string t = temp_str.substr(temp_str.find('=')+1);
+			time_lim = ::atof(t.c_str());
+		}
+	}
+	fluid_simulation->getConfig()->timeStep = time_step;
+	fluid_simulation->getConfig()->timeLimit = time_lim;
 	float * initial_position = new float[4];
 	float * initial_velocity = new float[4];
 	float * current_position = new float[4];
@@ -107,10 +124,10 @@ void test_gravity(){
 	float * v_buffer;
 	const int id = 0;
 	int counter = 0;
-	const int totalNumberOfIteration = 1000;
+	const int totalNumberOfIteration = int(fluid_simulation->getConfig()->timeLimit/fluid_simulation->getConfig()->timeStep);
 	float * result = new float[ totalNumberOfIteration * 2 ];
 	get_position(fluid_simulation,initial_position,initial_velocity,id);
-	result[0] = timeStep * counter;
+	result[0] = fluid_simulation->getConfig()->timeStep * counter;
 	result[1] = get_dist(initial_position,initial_position) * simulationScale;
 	counter++;
 	std::cout << "===================" << "CONSERVATION GRAVITY TEST START" << "========================" << std::endl;
@@ -119,11 +136,16 @@ void test_gravity(){
 		get_position(fluid_simulation,current_position,current_velocity,id);
 		if(counter == totalNumberOfIteration)
 			break;
-		result[counter * 2 + 0] = timeStep * counter;
+		result[counter * 2 + 0] = fluid_simulation->getConfig()->timeStep * counter;
 		result[counter * 2 + 1] = get_dist(initial_position,current_position) * simulationScale;
 		counter++;
 	}
-	owHelper::log_buffer(result, 2, totalNumberOfIteration, "./logs/gravity_test_distrib.txt");
+	std::stringstream ss;
+	ss << "./logs/euler_gravity_test_distrib_";
+	ss << fluid_simulation->getConfig()->timeStep;
+	ss << ".txt";
+	owHelper::log_buffer(result, 2, totalNumberOfIteration, ss.str().c_str());
+	std::cout << "Time Step is " << fluid_simulation->getConfig()->timeStep << std::endl;
 	std::cout << "===================" << "CONSERVATION GRAVITY TEST END  " << "========================" << std::endl;
 	delete fluid_simulation;
 }

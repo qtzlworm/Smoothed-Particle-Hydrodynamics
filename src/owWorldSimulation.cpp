@@ -483,7 +483,7 @@ void renderInfo(int x, int y)
 																													 numOfBoundaryP,loacalConfig->getParticleCount());
 		glPrint( 0 , 2 , label, m_font);
 		glColor3f (1.0F, 1.0F, 1.0F); 
-		sprintf(label,"Selected device: %s FPS = %.2f, time step: %d (%f s)", device_full_name+7, fps, fluid_simulation->getIteration(),((float)fluid_simulation->getIteration())*timeStep);
+		sprintf(label,"Selected device: %s FPS = %.2f, time step: %d (%f s)", device_full_name+7, fps, fluid_simulation->getIteration(),((float)fluid_simulation->getIteration())*loacalConfig->timeStep);
 		glPrint( 0 , 17 , label, m_font);
 	}
 	if(showRuler){
@@ -757,6 +757,8 @@ void run(int argc, char** argv, const bool with_graphics, const bool load_to)
 	helper = new owHelper();
 	if(!load_from_file){
 		DEVICE dev_type = CPU;
+		float time_step = timeStep;
+		float time_lim = 0;
 		for(int i = 1; i<argc; i++){
 			if(strncmp(argv[i], "device=", 7) == 0){
 				if(strstr(argv[i], "gpu") != NULL || strstr(argv[i], "GPU") != NULL)
@@ -765,6 +767,7 @@ void run(int argc, char** argv, const bool with_graphics, const bool load_to)
 		}
 		fluid_simulation = new owPhysicsFluidSimulator(helper, dev_type);
 		loacalConfig = fluid_simulation->getConfig();
+		fluid_simulation->getConfig()->timeStep=timeStep;
 	}
 	else{
 		loacalConfig = new owConfigProrerty();
