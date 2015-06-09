@@ -89,8 +89,8 @@ void owHelper::refreshTime()
 
 //READ DEFAULT CONFIGURATATION FROM FILE IN CONFIGURATION FOLDER
 int read_position = 0;
-std::string owHelper::path = "./configuration/test/one/";
-std::string owHelper::suffix = "_liquid_one";
+std::string owHelper::path = "./configuration/test/one_spring/";
+std::string owHelper::suffix = "_elastic_one";
 /** Preparing initial data before load full configuration
  *
  *  Before load configuration data from file (initial position and velocity,
@@ -268,8 +268,11 @@ void owHelper::loadConfiguration(float *position_cpp, float *velocity_cpp, float
 					elasticConectionsFile >> jd >> rij0 >> val1 >> val2;
 					if(jd>=-1)
 					{
+						float dist = sqrt((position_cpp[0] - position_cpp[4*(int)jd + 0]) * (position_cpp[0] - position_cpp[4*(int)jd + 0]) +
+								          (position_cpp[1] - position_cpp[4*(int)jd + 1]) * (position_cpp[1] - position_cpp[4*(int)jd + 1]) +
+								          (position_cpp[2] - position_cpp[4*(int)jd + 2]) * (position_cpp[2] - position_cpp[4*(int)jd + 2]));
 						elasticConnections[ 4 * i + 0 ] = jd;
-						elasticConnections[ 4 * i + 1 ] = rij0 * simulationScale;
+						elasticConnections[ 4 * i + 1 ] = (dist/*rij0*/) * simulationScale;
 						elasticConnections[ 4 * i + 2 ] = val1;
 						elasticConnections[ 4 * i + 3 ] = val2;
 						i++;

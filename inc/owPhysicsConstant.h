@@ -69,7 +69,7 @@ const float mass = 3.25e-14f;                       // Mass for one particle (kg
                                                     // C. elegans's body model. But we you can use your own value of mass
                                                     // TODO: make it as an input parameter
 
-const float timeStep = 5.0e-06f;                    // Time step of simulation (s)
+const float timeStep = 5.0e-05f;                    // Time step of simulation (s)
                                                     // NOTE: "For numerical stability and convergence, several time step
                                                     // constraints must be satisfied. The Courant-Friedrich-Levy
                                                     // (CFL) condition for SPH (dt <= lambda_v*(h/v_max))
