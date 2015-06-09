@@ -137,7 +137,7 @@ void test_gravity(int argc, char** argv){
 		if(counter == totalNumberOfIteration)
 			break;
 		result[counter * 2 + 0] = fluid_simulation->getConfig()->timeStep * counter;
-		result[counter * 2 + 1] = (fluid_simulation->getConfig()->ymax/2 - current_position[2]) * simulationScale;//get_dist(initial_position,current_position) * simulationScale;
+		result[counter * 2 + 1] = (fluid_simulation->getConfig()->ymax/2 - current_position[1]) * simulationScale;//get_dist(initial_position,current_position) * simulationScale;
 		counter++;
 	}
 	std::stringstream ss;
