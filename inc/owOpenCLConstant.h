@@ -54,7 +54,7 @@ const int local_NDRange_size = 256;
 
 enum DEVICE { CPU = 0, GPU = 1};
 
-#define EULER_INTEGRATOR 1 //if it equal 1 it means that system will work with semi-implicit Euler integrator
+#define EULER_INTEGRATOR 0 //if it equal 1 it means that system will work with semi-implicit Euler integrator
 						   //else it LeapFrog by default
 
 #endif // #ifndef OW_OPENCL_CONSTANT_H

@@ -96,7 +96,7 @@ void test_energy_conservation(){
 }
 
 void test_gravity(int argc, char** argv){
-	owHelper::path = "./configuration/test/";
+	owHelper::path = "./configuration/test/one_spring/";
 	owHelper::suffix = "_elastic_one";
 	owHelper * helper = new owHelper();
 	owPhysicsFluidSimulator * fluid_simulation = new owPhysicsFluidSimulator(helper);
@@ -137,11 +137,11 @@ void test_gravity(int argc, char** argv){
 		if(counter == totalNumberOfIteration)
 			break;
 		result[counter * 2 + 0] = fluid_simulation->getConfig()->timeStep * counter;
-		result[counter * 2 + 1] = (fluid_simulation->getConfig()->ymax/2 - current_position[1]) * simulationScale;//get_dist(initial_position,current_position) * simulationScale;
+		result[counter * 2 + 1] = (-1.f)*sqrt(pow((fluid_simulation->getConfig()->ymax/2 - current_position[1]),2.f)) * simulationScale;//get_dist(initial_position,current_position) * simulationScale;
 		counter++;
 	}
 	std::stringstream ss;
-	ss << "./logs/euler spring/euler_gravity_test_distrib_";
+	ss << "./logs/leapfrog spring/leapfrog_gravity_test_distrib_";
 	ss << fluid_simulation->getConfig()->timeStep;
 	ss << ".txt";
 	owHelper::log_buffer(result, 2, totalNumberOfIteration, ss.str().c_str());
